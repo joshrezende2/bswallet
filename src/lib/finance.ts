@@ -15,7 +15,7 @@ export function toISODate(d: Date): string {
 
 export function parseISODate(s: string): Date {
   const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
 }
 
 export function monthKey(year: number, month: number) {
