@@ -94,11 +94,10 @@ export function TransactionDialog({
       : null;
 
   async function handleSave() {
-    if (!name.trim()) return toast.error("Informe o nome do lançamento.");
-    if (cents <= 0) return toast.error("O valor deve ser maior que zero.");
-    if (!categoryId) return toast.error("Selecione uma categoria.");
-    if (mode === "installment" && cardId === NONE)
-      return toast.error("Compras parceladas exigem um cartão.");
+    if (!name.trim()) { toast.error("Informe o nome do lançamento."); return; }
+    if (cents <= 0) { toast.error("O valor deve ser maior que zero."); return; }
+    if (!categoryId) { toast.error("Selecione uma categoria."); return; }
+    if (mode === "installment" && cardId === NONE) { toast.error("Compras parceladas exigem um cartão."); return; }
 
     setSaving(true);
     try {

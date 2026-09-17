@@ -65,7 +65,7 @@ export interface Transaction extends Base {
   installmentNumber?: number | undefined;
   installmentTotal?: number | undefined;
   recurrenceId?: string | undefined;
-  invoiceId?: string; // `${cardId}:${YYYY-MM}`
+  invoiceId?: string | undefined; // `${cardId}:${YYYY-MM}`
 }
 
 export type Frequency =
