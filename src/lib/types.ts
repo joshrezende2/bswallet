@@ -12,13 +12,13 @@ export interface Base {
 export interface Person extends Base {
   name: string;
   scope: Scope;
-  monthlySpendingLimit?: number;
+  monthlySpendingLimit?: number | undefined;
   active: boolean;
 }
 
 export interface Account extends Base {
   name: string;
-  institution?: string;
+  institution?: string | undefined;
   type: "checking" | "savings" | "digital" | "cash" | "other";
   scope: Scope;
   active: boolean;
@@ -29,14 +29,14 @@ export interface Card extends Base {
   bank: string;
   brand: string;
   last4Digits: string;
-  ownerPersonId?: string;
-  accountId?: string;
+  ownerPersonId?: string | undefined;
+  accountId?: string | undefined;
   totalLimit: number;
   closingDay: number;
   dueDay: number;
   scope: Scope;
   active: boolean;
-  notes?: string;
+  notes?: string | undefined;
 }
 
 export interface Category extends Base {
@@ -54,17 +54,17 @@ export interface Transaction extends Base {
   name: string;
   amount: number; // centavos
   transactionDate: string; // YYYY-MM-DD
-  competenceDate?: string;
+  competenceDate?: string | undefined;
   categoryId: string;
-  personId?: string;
-  accountId?: string;
-  cardId?: string;
+  personId?: string | undefined;
+  accountId?: string | undefined;
+  cardId?: string | undefined;
   paymentMode: PaymentMode;
-  notes?: string;
-  installmentGroupId?: string;
-  installmentNumber?: number;
-  installmentTotal?: number;
-  recurrenceId?: string;
+  notes?: string | undefined;
+  installmentGroupId?: string | undefined;
+  installmentNumber?: number | undefined;
+  installmentTotal?: number | undefined;
+  recurrenceId?: string | undefined;
   invoiceId?: string; // `${cardId}:${YYYY-MM}`
 }
 
@@ -82,12 +82,12 @@ export interface Recurrence extends Base {
   name: string;
   amount: number;
   categoryId: string;
-  personId?: string;
-  accountId?: string;
-  cardId?: string;
+  personId?: string | undefined;
+  accountId?: string | undefined;
+  cardId?: string | undefined;
   frequency: Frequency;
   startDate: string;
-  endDate?: string;
+  endDate?: string | undefined;
   nextOccurrenceDate: string;
   autoConfirm: boolean;
   scope: Scope;
@@ -98,7 +98,7 @@ export interface Budget extends Base {
   month: number;
   year: number;
   categoryId: string;
-  personId?: string;
+  personId?: string | undefined;
   limitAmount: number;
   thresholds: number[];
   scope: Scope;
@@ -110,8 +110,8 @@ export interface Transfer extends Base {
   toAccountId: string;
   amount: number;
   date: string;
-  personId?: string;
-  notes?: string;
+  personId?: string | undefined;
+  notes?: string | undefined;
   scope: Scope;
 }
 
