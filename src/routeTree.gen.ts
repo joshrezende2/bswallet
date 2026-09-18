@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CartoesRouteImport } from './routes/cartoes'
+import { Route as HistoricoRouteImport } from './routes/historico'
+import { Route as RecorrenciasRouteImport } from './routes/recorrencias'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +24,49 @@ const CartoesRoute = CartoesRouteImport.update({
   path: '/cartoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoricoRoute = HistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecorrenciasRoute = RecorrenciasRouteImport.update({
+  id: '/recorrencias',
+  path: '/recorrencias',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cartoes': typeof CartoesRoute
+  '/historico': typeof HistoricoRoute
+  '/recorrencias': typeof RecorrenciasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cartoes': typeof CartoesRoute
+  '/historico': typeof HistoricoRoute
+  '/recorrencias': typeof RecorrenciasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/cartoes': typeof CartoesRoute
+  '/historico': typeof HistoricoRoute
+  '/recorrencias': typeof RecorrenciasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cartoes'
+  fullPaths: '/' | '/cartoes' | '/historico' | '/recorrencias'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cartoes'
-  id: '__root__' | '/' | '/cartoes'
+  to: '/' | '/cartoes' | '/historico' | '/recorrencias'
+  id: '__root__' | '/' | '/cartoes' | '/historico' | '/recorrencias'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CartoesRoute: typeof CartoesRoute
+  HistoricoRoute: typeof HistoricoRoute
+  RecorrenciasRoute: typeof RecorrenciasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +85,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CartoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/historico': {
+      id: '/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof HistoricoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recorrencias': {
+      id: '/recorrencias'
+      path: '/recorrencias'
+      fullPath: '/recorrencias'
+      preLoaderRoute: typeof RecorrenciasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CartoesRoute: CartoesRoute,
+  HistoricoRoute: HistoricoRoute,
+  RecorrenciasRoute: RecorrenciasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

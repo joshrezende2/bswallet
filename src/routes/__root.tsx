@@ -77,11 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "BS Wallet — controle financeiro da família" },
+      {
+        name: "description",
+        content:
+          "Controle de despesas, cartões, recorrências e orçamentos da família, funcionando offline no seu aparelho.",
+      },
+      { name: "author", content: "BS Wallet" },
+      { property: "og:title", content: "BS Wallet — controle financeiro da família" },
+      {
+        property: "og:description",
+        content: "Despesas, cartões, recorrências e orçamentos em um app que funciona offline.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
