@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AjustesRouteImport } from './routes/ajustes'
 import { Route as CartoesRouteImport } from './routes/cartoes'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as RecorrenciasRouteImport } from './routes/recorrencias'
@@ -17,6 +18,11 @@ import { Route as RecorrenciasRouteImport } from './routes/recorrencias'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AjustesRoute = AjustesRouteImport.update({
+  id: '/ajustes',
+  path: '/ajustes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartoesRoute = CartoesRouteImport.update({
@@ -37,12 +43,14 @@ const RecorrenciasRoute = RecorrenciasRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ajustes': typeof AjustesRoute
   '/cartoes': typeof CartoesRoute
   '/historico': typeof HistoricoRoute
   '/recorrencias': typeof RecorrenciasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ajustes': typeof AjustesRoute
   '/cartoes': typeof CartoesRoute
   '/historico': typeof HistoricoRoute
   '/recorrencias': typeof RecorrenciasRoute
@@ -50,20 +58,23 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ajustes': typeof AjustesRoute
   '/cartoes': typeof CartoesRoute
   '/historico': typeof HistoricoRoute
   '/recorrencias': typeof RecorrenciasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cartoes' | '/historico' | '/recorrencias'
+  fullPaths: '/' | '/ajustes' | '/cartoes' | '/historico' | '/recorrencias'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cartoes' | '/historico' | '/recorrencias'
-  id: '__root__' | '/' | '/cartoes' | '/historico' | '/recorrencias'
+  to: '/' | '/ajustes' | '/cartoes' | '/historico' | '/recorrencias'
+  id:
+    '__root__' | '/' | '/ajustes' | '/cartoes' | '/historico' | '/recorrencias'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AjustesRoute: typeof AjustesRoute
   CartoesRoute: typeof CartoesRoute
   HistoricoRoute: typeof HistoricoRoute
   RecorrenciasRoute: typeof RecorrenciasRoute
@@ -76,6 +87,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ajustes': {
+      id: '/ajustes'
+      path: '/ajustes'
+      fullPath: '/ajustes'
+      preLoaderRoute: typeof AjustesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cartoes': {
@@ -104,6 +122,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AjustesRoute: AjustesRoute,
   CartoesRoute: CartoesRoute,
   HistoricoRoute: HistoricoRoute,
   RecorrenciasRoute: RecorrenciasRoute,
