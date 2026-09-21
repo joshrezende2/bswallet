@@ -1,0 +1,54 @@
+import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { useRegisterSW } from 'virtual:pwa-register/react';
+import { Bell, CalendarDays, ChevronLeft, ChevronRight, CreditCard, Download, FileClock, House, LogOut, Plus, Settings, Users, Wifi, WifiOff, X } from 'lucide-react';
+import { auth } from './data/auth';
+import { walletService } from './data/wallet-service';
+import type { User } from './domain/types';
+import { addMonths, monthLabel } from './domain/finance';
+import { hasCapability } from './domain/permissions';
+import { Brand, Button, Empty, Modal } from './components/ui';
+import { WalletProvider, useWallet } from './components/WalletContext';
+import { TransactionEditor } from './components/Editors';
+import { AuthPage } from './pages/AuthPage';
+import { Dashboard } from './pages/Dashboard';
+import { Cards } from './pages/Cards';
+import { History } from './pages/History';
+import { Recurrences } from './pages/Recurrences';
+import { Settings as SettingsPage } from './pages/Settings';
+
+const navigation = [{ path: 'resumo', label: 'Resumo', icon: House }, { path: 'recorrencias', label: 'Recorrências', icon: CalendarDays }, { path: 'cartoes', label: 'Cartões', icon: CreditCard }, { path: 'historico', label: 'Histórico', icon: FileClock }, { path: 'ajustes', label: 'Ajustes', icon: Settings }];
+interface InstallPrompt extends Event { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }>; }
+function AppShell({ user, onLogout, theme, toggleTheme }: { user: User; onLogout: () => void; theme: string; toggleTheme: () => void }) {
+  const { ctx, state, wallets, selectWorkspace, month, setMonth, scope, setScope, run } = useWallet();
+  const location = useLocation(), current = navigation.find(n => location.pathname.includes(`/app/${n.path}`)) ?? navigation[0];
+  const [adding, setAdding] = useState(false), [notices, setNotices] = useState(false), [online, setOnline] = useState(navigator.onLine), [install, setInstall] = useState<InstallPrompt | null>(null);
+  const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW();
+  useEffect(() => { const changed = () => setOnline(navigator.onLine); window.addEventListener('online', changed); window.addEventListener('offline', changed); const prompt = (e: Event) => { e.preventDefault(); setInstall(e as InstallPrompt); }; window.addEventListener('beforeinstallprompt', prompt); return () => { window.removeEventListener('online', changed); window.removeEventListener('offline', changed); window.removeEventListener('beforeinstallprompt', prompt); }; }, []);
+  useEffect(() => {
+    if (!('Notification' in window) || Notification.permission !== 'granted' || localStorage.getItem('bs-native-notifications') !== 'true' || !state.preferences.notificationsEnabled) return;
+    for (const notice of state.notices.filter(n => !n.read && state.preferences.noticeTypes.includes(n.type))) { const key = `bs-notice:${ctx.user.id}:${notice.id}`; if (localStorage.getItem(key)) continue; try { new Notification(notice.title, { body: notice.detail, icon: '/icon-192.png', tag: notice.id }); localStorage.setItem(key, 'shown'); } catch { /* In-app notices remain accessible on platforms without desktop notifications. */ } }
+  }, [state.notices, state.preferences, ctx.user.id]);
+  const unread = state.notices.filter(n => !n.read).length;
+  return <div className="app-shell"><a className="skip-link" href="#main">Pular para o conteúdo</a><aside className="sidebar"><Link to="/app/resumo" aria-label="BS Wallet início"><Brand /></Link><div className="workspace-picker"><Users size={21} /><div><select aria-label="Família ativa" value={state.id} onChange={e => selectWorkspace(e.target.value)}>{wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}</select><small>Finanças em família</small></div></div><nav aria-label="Navegação principal">{navigation.map(n => <NavLink key={n.path} to={`/app/${n.path}`}><n.icon size={21} strokeWidth={1.8} /><span>{n.label}</span></NavLink>)}</nav><div className="sidebar-bottom"><div className="storage-status"><span className={`status-dot ${online ? '' : 'is-offline'}`} /><div><strong>{online ? 'Salvo no dispositivo' : 'Modo offline'}</strong><small>{online ? 'Sem sincronização em nuvem' : 'Continue usando normalmente'}</small></div></div>{install && <button className="install-button" onClick={async () => { await install.prompt(); setInstall(null); }}><Download size={17} />Instalar aplicativo</button>}<div className="user-menu"><span className="avatar">{user.name.split(' ').map(n => n[0]).slice(0, 2).join('')}</span><Link to="/app/ajustes/seguranca"><strong>{user.name}</strong><small>{state.demo ? 'Demonstração local' : 'Conta local'}</small></Link><button className="icon-button" aria-label="Sair da conta" onClick={onLogout}><LogOut size={16} /></button></div></div></aside>
+    <main id="main" className="main-content"><header className="page-header"><div><h1>{current.label}</h1><p>{current.path === 'resumo' ? 'Seu mês, em perspectiva.' : current.path === 'recorrencias' ? 'Mais organização, menos coisas para lembrar.' : current.path === 'cartoes' ? 'Clareza em cada compra.' : current.path === 'historico' ? 'Cada movimento tem uma história.' : 'Sua carteira, do seu jeito.'}</p></div><div className="header-actions"><button className="icon-button notification-button" aria-label={`Notificações, ${unread} não lidas`} onClick={() => setNotices(true)}><Bell size={20} />{unread > 0 && <span />}</button><Button className="add-button" onClick={() => setAdding(true)}><Plus size={19} /><span>Adicionar lançamento</span></Button></div></header>
+    <div className="period-toolbar"><div className="month-picker"><button className="icon-button" aria-label="Mês anterior" onClick={() => setMonth(addMonths(`${month}-01`, -1).slice(0, 7))}><ChevronLeft size={19} /></button><label className="month-control"><span>{monthLabel(month)}</span><input aria-label="Mês selecionado" type="month" value={month} onChange={e => { if (e.target.value) setMonth(e.target.value); }} /></label><button className="icon-button" aria-label="Próximo mês" onClick={() => setMonth(addMonths(`${month}-01`, 1).slice(0, 7))}><ChevronRight size={19} /></button></div><div className="scope-switch" role="group" aria-label="Carteira"><button className={scope === 'personal' ? 'active' : ''} aria-pressed={scope === 'personal'} onClick={() => setScope('personal')}>Pessoal</button>{state.workspace.sharingEnabled && hasCapability(state, ctx, 'shared.read') && <button className={scope === 'shared' ? 'active' : ''} aria-pressed={scope === 'shared'} onClick={() => setScope('shared')}>Família</button>}</div></div>
+    {!online && <div className="offline-banner" role="status"><WifiOff size={17} />Você está offline. Seus registros continuam salvos neste dispositivo.</div>}
+    {needRefresh && <div className="update-banner"><span>Uma atualização está pronta. Salve seus formulários antes de atualizar.</span><Button variant="secondary" onClick={() => updateServiceWorker(true)}>Atualizar app</Button><button className="icon-button" aria-label="Atualizar depois" onClick={() => setNeedRefresh(false)}><X size={17} /></button></div>}
+    <Routes><Route path="resumo" element={<Dashboard onAdd={() => setAdding(true)} />} /><Route path="recorrencias" element={<Recurrences />} /><Route path="cartoes" element={<Cards />} /><Route path="historico" element={<History />} /><Route path="ajustes" element={<SettingsPage theme={theme} toggleTheme={toggleTheme} onLogout={onLogout} />} /><Route path="ajustes/:section" element={<SettingsPage theme={theme} toggleTheme={toggleTheme} onLogout={onLogout} />} /><Route path="*" element={<Navigate to="resumo" replace />} /></Routes>
+    </main><nav className="mobile-nav" aria-label="Navegação mobile">{navigation.map(n => <NavLink key={n.path} to={`/app/${n.path}`}><n.icon size={21} strokeWidth={1.8} /><span>{n.label}</span></NavLink>)}</nav>{adding && <TransactionEditor onClose={() => setAdding(false)} />}{notices && <Modal title="Notificações" onClose={() => setNotices(false)}>{state.notices.length ? <div className="notice-list">{state.notices.slice().reverse().map(n => <button key={n.id} className={n.read ? 'read' : ''} onClick={() => run(() => walletService.markNoticeRead(ctx, n.id), '')}><span className="category-icon"><Bell size={18} /></span><span><strong>{n.title}</strong><small>{n.detail}</small></span>{!n.read && <i className="status-dot" />}</button>)}</div> : <Empty title="Tudo em dia por aqui" description="Lembretes de contas, parcelas e orçamentos aparecem aqui." />}<Link className="text-button" to="/app/ajustes/notificacoes" onClick={() => setNotices(false)}>Configurar notificações</Link></Modal>}</div>;
+}
+class ErrorBoundary extends Component<{ children: ReactNode }, { error?: string }> {
+  state: { error?: string } = {};
+  static getDerivedStateFromError(error: Error) { return { error: error.message }; }
+  componentDidCatch(_error: Error, _info: ErrorInfo) { /* Do not send private financial state to telemetry. */ }
+  render() { return this.state.error ? <div className="error-screen"><Brand /><h1>Não foi possível abrir esta tela.</h1><p>{this.state.error}</p><p>Seus dados locais não foram apagados.</p><Button onClick={() => window.location.reload()}>Tentar novamente</Button></div> : this.props.children; }
+}
+export default function App() {
+  const [user, setUser] = useState<User | null>(null), [loading, setLoading] = useState(true), [error, setError] = useState('');
+  const [theme, setTheme] = useState(() => localStorage.getItem('bs-theme') ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  useEffect(() => { auth.restoreSession().then(setUser).catch(e => setError(e.message)).finally(() => setLoading(false)); }, []);
+  useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem('bs-theme', theme); }, [theme]);
+  async function logout() { await auth.signOut(); setUser(null); }
+  return <ErrorBoundary><BrowserRouter>{loading ? <div className="loading-screen"><Brand /><span className="loader" />Abrindo sua carteira…</div> : error ? <div className="error-screen"><h1>Armazenamento indisponível</h1><p>{error}</p><p>Permita o armazenamento local neste navegador para continuar.</p><Button onClick={() => location.reload()}>Tentar novamente</Button></div> : user ? <WalletProvider user={user}><Routes><Route path="/app/*" element={<AppShell user={user} onLogout={logout} theme={theme} toggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} />} /><Route path="*" element={<Navigate to="/app/resumo" replace />} /></Routes></WalletProvider> : <AuthPage onLogin={setUser} />}</BrowserRouter></ErrorBoundary>;
+}

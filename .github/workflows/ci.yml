@@ -1,0 +1,31 @@
+name: Verificar BS Wallet
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Testes e build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v4
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund
+      - name: Checagem de tipos
+        run: npm run typecheck
+      - name: Testes financeiros e de permissão
+        run: npm test
+      - name: Build PWA
+        run: npm run build

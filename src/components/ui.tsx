@@ -1,0 +1,18 @@
+import { useEffect, useRef, type ReactNode, type ButtonHTMLAttributes } from 'react';
+import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, BriefcaseBusiness, Car, CircleHelp, CreditCard, FileText, Heart, House, ShoppingCart, Sparkles, Utensils, Wallet, X } from 'lucide-react';
+import type { Status } from '../domain/types';
+export function Button({ variant = 'primary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger' }) { return <button {...props} className={`button ${variant} ${className}`} />; }
+export function Field({ label, children, hint, wide = false }: { label: string; children: ReactNode; hint?: string; wide?: boolean }) { return <label className={`field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>; }
+export function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
+  return <dialog ref={ref} className={`modal ${wide ? 'modal-wide' : ''}`} onCancel={e => { e.preventDefault(); onClose(); }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}><div className="modal-inner"><header className="modal-header"><h2>{title}</h2><button className="icon-button" aria-label="Fechar" onClick={onClose}><X size={20} /></button></header>{children}</div></dialog>;
+}
+export function Empty({ title = 'Tudo pronto para começar', description = 'Seus registros aparecerão aqui.', action }: { title?: string; description?: string; action?: ReactNode }) { return <div className="empty"><span className="empty-icon"><Wallet size={28} /></span><h3>{title}</h3><p>{description}</p>{action}</div>; }
+export function StatusBadge({ status }: { status: Status | string }) { const labels: Record<string, string> = { confirmed: 'Confirmado', pending: 'Pendente', forecast: 'Previsão', cancelled: 'Cancelado' }; return <span className={`status ${status}`}>{labels[status] ?? status}</span>; }
+const icons = { shopping: ShoppingCart, utensils: Utensils, car: Car, home: House, heart: Heart, sparkles: Sparkles, wallet: Wallet, briefcase: BriefcaseBusiness, card: CreditCard, file: FileText, transfer: ArrowLeftRight, income: ArrowUpRight, expense: ArrowDownLeft };
+export function CategoryIcon({ name = 'wallet', size = 19 }: { name?: string; size?: number }) { const Icon = icons[name as keyof typeof icons] ?? CircleHelp; return <Icon size={size} strokeWidth={1.8} />; }
+export function Brand() { return <div className="brand"><img src="/favicon.svg" width="38" height="38" alt="" /><span>BS Wallet</span></div>; }
+export function ErrorText({ error }: { error?: string }) { return error ? <p role="alert" className="error-message">{error}</p> : null; }
+export const statusLabels: Record<Status, string> = { confirmed: 'Confirmado', pending: 'Pendente', forecast: 'Previsão', cancelled: 'Cancelado' };
+export const frequencyLabels = { weekly: 'Semanal', biweekly: 'Quinzenal (14 dias)', monthly: 'Mensal', bimonthly: 'Bimestral', quarterly: 'Trimestral', semiannual: 'Semestral', annual: 'Anual', custom: 'Personalizado' };
