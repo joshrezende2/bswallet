@@ -62,7 +62,7 @@ export function setXanoToken(token: string, persistent: boolean, userId: string 
 }
 
 export function bindXanoSession(token: string, userId: string) {
-  if (getXanoToken() !== token) throw new Error('A sessão Xano mudou. Tente novamente.');
+  if (getXanoToken() !== token) throw new Error('A sessão de sincronização mudou. Tente novamente.');
   const persistent = typeof localStorage !== 'undefined' && readStorage(localStorage, persistentTokenKey) === token;
   setXanoToken(token, persistent, userId);
 }
@@ -93,9 +93,9 @@ function errorMessage(payload: unknown, fallback: string) {
 }
 
 async function request<T>(baseUrl: string, path: string, init: RequestInit = {}, authenticated = true): Promise<T> {
-  if (!xanoReady()) throw new XanoError(0, 'A sincronização com o Xano ainda não está habilitada.');
+  if (!xanoReady()) throw new XanoError(0, 'A sincronização em nuvem ainda não está habilitada.');
   const token = authenticated ? getXanoToken() : null;
-  if (authenticated && !token) throw new XanoError(401, 'Sessão Xano indisponível.');
+  if (authenticated && !token) throw new XanoError(401, 'Confirme sua conta BS Wallet para sincronizar.');
   const headers = new Headers(init.headers);
   if (!(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -114,7 +114,7 @@ async function request<T>(baseUrl: string, path: string, init: RequestInit = {},
     if (!response.ok) {
       const error = new XanoError(response.status, errorMessage(payload, `Xano respondeu com HTTP ${response.status}.`), payload);
       if (response.status === 401 && token && getXanoToken() === token) {
-        clearXanoToken(); reportXanoSessionError(new Error('Sua sessão Xano expirou. Conecte sua conta novamente.'));
+        clearXanoToken(); reportXanoSessionError(new Error('Sua sessão de sincronização expirou. Confirme sua conta BS Wallet.'));
       }
       throw error;
     }

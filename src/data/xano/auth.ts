@@ -15,7 +15,7 @@ async function userFromSession(response: AuthResponse, persistent: boolean) {
   if (!response.authToken) throw new Error('O Xano não retornou um token de autenticação.');
   setXanoToken(response.authToken, persistent);
   const user = response.user ?? await xanoAuth<RemoteUser>('/auth/me');
-  if (!user?.id || user.active === false) throw new Error('A conta Xano está indisponível ou inativa.');
+  if (!user?.id || user.active === false) throw new Error('A conta BS Wallet está indisponível ou inativa.');
   bindXanoSession(response.authToken, user.id);
   return user;
 }
@@ -37,7 +37,7 @@ export async function validateXanoSession(userId: string) {
   if (!token) return false;
   try {
     const user = await xanoMe();
-    if (user?.id !== userId || user.active === false) throw new Error('A sessão Xano pertence a outra conta ou está inativa. Conecte sua conta novamente.');
+    if (user?.id !== userId || user.active === false) throw new Error('A sessão de sincronização pertence a outra conta ou está inativa. Confirme sua conta BS Wallet.');
     bindXanoSession(token, userId);
     return true;
   } catch (error) {

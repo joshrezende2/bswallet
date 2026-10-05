@@ -88,7 +88,7 @@ export class LocalAuthProvider implements AuthProvider {
     let user = await db.users.get(remote.id);
     if (!user) {
       const sameEmail = await db.users.where('email').equals(remote.email.trim().toLowerCase()).first();
-      if (sameEmail && sameEmail.id !== remote.id) throw new Error('A conta Xano usa um ID diferente da conta local. Faça a migração dessa conta antes de ativar a sincronização.');
+      if (sameEmail && sameEmail.id !== remote.id) throw new Error('A conta BS Wallet na nuvem usa um ID diferente da conta local. Faça a migração dessa conta antes de ativar a sincronização.');
       const base = (usernameHint || remote.email.split('@')[0] || 'usuario').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 24) || 'usuario';
       let username = base, suffix = 1;
       while (await db.users.where('username').equals(username).count()) username = `${base.slice(0, 24)}_${suffix++}`.slice(0, 32);
@@ -183,7 +183,7 @@ class HybridAuthProvider implements AuthProvider {
     }
 
     if (!cloudUsable()) throw localError;
-    if (!identifier.includes('@')) throw new Error('No primeiro acesso neste dispositivo, entre com seu e-mail. O username remoto será habilitado quando esse campo existir na tabela user do Xano.');
+    if (!identifier.includes('@')) throw new Error('No primeiro acesso neste dispositivo, entre com seu e-mail. O username funciona nos dispositivos em que você já entrou.');
     try {
       const remote = await xanoSignIn(identifier.trim().toLowerCase(), password, remember);
       const user = await this.local.cacheRemoteUser(remote, password, remember);
@@ -196,10 +196,10 @@ class HybridAuthProvider implements AuthProvider {
     }
   }
 
-  async connectXano(userId: string, password: string, remember = true) {
+  async resumeCloudSession(userId: string, password: string, remember = true) {
     const user = await this.local.requireUser(userId);
-    if (!xanoReady()) throw new Error('Configure a conexão Xano antes de conectar sua conta.');
-    if (!online()) throw new Error('Conecte-se à internet para vincular sua conta ao Xano.');
+    if (!xanoReady()) throw new Error('A conexão com o servidor precisa ser configurada pelo responsável pelo aplicativo.');
+    if (!online()) throw new Error('Conecte-se à internet para confirmar sua conta BS Wallet.');
     clearXanoToken();
     try {
       let remote: RemoteUser;
@@ -208,7 +208,7 @@ class HybridAuthProvider implements AuthProvider {
         if (!(error instanceof XanoError) || ![401, 403].includes(error.status)) throw error;
         remote = await xanoSignUp({ id: user.id, name: user.name, email: user.email, password }, remember);
       }
-      if (remote.id !== user.id) throw new Error('A conta Xano possui um UUID diferente do cadastro local. Seus dados foram preservados; é necessário migrar essa conta antes de sincronizar.');
+      if (remote.id !== user.id) throw new Error('A conta BS Wallet na nuvem possui um UUID diferente do cadastro local. Seus dados foram preservados; é necessário migrar essa conta antes de sincronizar.');
       backgroundSync(user);
       return user;
     } catch (error) {
@@ -228,7 +228,7 @@ class HybridAuthProvider implements AuthProvider {
     const remoteUserId = getXanoSessionUserId();
     if (!user || (remoteUserId && remoteUserId !== user.id)) {
       clearXanoToken();
-      if (user) reportXanoSessionError(new Error('A sessão Xano pertence a outra conta. Conecte sua conta novamente.'));
+      if (user) reportXanoSessionError(new Error('A sessão de sincronização pertence a outra conta. Confirme sua conta BS Wallet.'));
       return user;
     }
     if (user && cloudUsable() && getXanoToken()) {
@@ -242,7 +242,7 @@ class HybridAuthProvider implements AuthProvider {
   async changePassword(userId: string, current: string, next: string) {
     if (xanoReady()) {
       if (!online()) throw new Error('Conecte-se à internet para alterar a senha de uma conta sincronizada.');
-      if (!hasXanoSession(userId)) throw new Error('Entre novamente para alterar sua senha no Xano.');
+      if (!hasXanoSession(userId)) throw new Error('Entre novamente no BS Wallet para alterar sua senha.');
       await xanoChangePassword(current, next);
     }
     return this.local.changePassword(userId, current, next);

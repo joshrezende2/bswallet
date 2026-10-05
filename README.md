@@ -10,13 +10,13 @@ Na primeira execução, o atalho instala as dependências necessárias. A janela
 
 Com o host aberto neste computador, conecte o outro dispositivo à mesma rede Wi-Fi ou cabeada e abra `http://10.10.10.192:5173/`. Se o Windows perguntar sobre acesso de rede para o Node.js, permita somente em **redes privadas**. Caso a página não abra, libere a porta TCP 5173 no Firewall do Windows para redes privadas.
 
-O endereço libera apenas a interface do app. Como esta versão guarda os dados em IndexedDB no próprio navegador, cada dispositivo terá seus próprios usuários e registros. A versão de produção inclui as URLs públicas do Xano. Conecte a mesma conta em Ajustes → Sincronização para enviar e receber registros.
+Cada pessoa cria sua própria conta no BS Wallet e usa o e-mail e a senha do aplicativo. O cadastro e o login ativam a sincronização automaticamente quando há internet. Para recuperar seus dados em outro dispositivo, entre com a mesma conta BS Wallet. O IndexedDB mantém uma cópia local para uso offline. Nenhum usuário precisa de conta administrativa ou acesso ao painel Xano.
 
 Aplicativo financeiro pessoal e familiar, em português do Brasil, que funciona antes de tudo no dispositivo. Os dados são salvos em IndexedDB e enviados ao Xano em segundo plano quando a conta está conectada.
 
 ## O que já funciona
 
-- contas locais com cadastro, login e sessão persistente;
+- contas BS Wallet com cadastro, login, sessão persistente e acesso offline;
 - carteira pessoal e compartilhada, Master Admin, membros e capabilities;
 - contas, pessoas, categorias, cartões, faturas e limites;
 - receitas, despesas, transferências, parcelas e recorrências;
@@ -70,7 +70,9 @@ O fluxo de publicação privada e a migração para Lovable estão em [docs/GITH
 
 O build de produção lê `.env.production`, que contém somente `VITE_XANO_SYNC_ENABLED=true` e as URLs públicas das APIs. Credenciais, tokens e chaves administrativas nunca entram nesse arquivo. Para desenvolvimento, copie-o para `.env.local` (ignorado pelo Git); os testes unitários forçam a integração real desligada.
 
-Em **Ajustes → Sincronização**, conecte a conta com sua senha. O UUID remoto deve corresponder ao local: identidades divergentes são informadas, sem substituir IDs nem apagar pendências. Sessão expirada permite reconectar na mesma tela. Uma falha temporária mantém os dados e a outbox; o app tenta novamente ao recuperar a internet, a cada minuto e manualmente. Alterações durante um envio disparam outra rodada sem concorrência no mesmo workspace/aba.
+O grupo **Authentication** (`https://xano.ab1midia.com.br/api:iJuDN1w_`) recebe o cadastro e o login dos usuários BS Wallet. O grupo **BS Wallet** (`https://xano.ab1midia.com.br/api:A-AE1sTc`) recebe as operações de sincronização com o token individual retornado pelo login. Não há login administrativo Xano no aplicativo.
+
+O cadastro e o login normais já iniciam a sincronização. Apenas sessões expiradas ou cadastros feitos offline precisam confirmar a senha do próprio BS Wallet em **Ajustes → Sincronização**. O UUID remoto deve corresponder ao local: identidades divergentes são informadas, sem substituir IDs nem apagar pendências. Sessão expirada permite reconectar na mesma tela. Uma falha temporária mantém os dados e a outbox; o app tenta novamente ao recuperar a internet, a cada minuto e manualmente. Alterações durante um envio disparam outra rodada sem concorrência no mesmo workspace/aba.
 
 Salvar alterações no Git local não atualiza `bswallet.lovable.app`. É preciso enviar a branch ao repositório conectado ao Lovable e publicar a versão atualizada lá. Uma versão já instalada como PWA oferece a ação de atualização quando o novo build estiver publicado. Não limpe o IndexedDB para atualizar o aplicativo.
 

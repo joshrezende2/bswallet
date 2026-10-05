@@ -24,6 +24,42 @@ beforeEach(async () => {
 afterEach(() => { clearXanoToken(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('sessão Xano vinculada à conta local', () => {
+  it('cadastro BS Wallet autentica e inicia sync sem conexão adicional', async () => {
+    fetchMock.mockImplementation(async (_url, init) => {
+      const { password: _password, ...user } = JSON.parse(init?.body as string);
+      return new Response(JSON.stringify({ authToken: 'individual-token', user }));
+    });
+    const user = await auth.signUp({ name: 'Nova pessoa', email: 'nova@test.com', username: 'nova', password });
+    expect(fetchMock.mock.calls[0][0]).toBe('https://auth.test/auth/signup');
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).has('Authorization')).toBe(false);
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual({ id: user.id, name: user.name, email: user.email, password });
+    expect(hasXanoSession(user.id)).toBe(true);
+    await vi.waitFor(() => expect(syncAllForUser).toHaveBeenCalledWith(user));
+  });
+
+  it('login BS Wallet usa a senha do app e retoma sync automaticamente', async () => {
+    const user = await local.signUp({ name: 'A', email: 'a@test.com', username: 'user-a', password });
+    await local.signOut();
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ authToken: 'individual-token', user })));
+    await auth.signIn(user.email, password);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://auth.test/auth/login');
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual({ email: user.email, password });
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).has('Authorization')).toBe(false);
+    expect(hasXanoSession(user.id)).toBe(true);
+    await vi.waitFor(() => expect(syncAllForUser).toHaveBeenCalledWith(user));
+  });
+
+  it('login de cadastro feito offline cria a conta na nuvem com o mesmo UUID', async () => {
+    const user = await local.signUp({ name: 'A', email: 'a@test.com', username: 'user-a', password });
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ authToken: 'individual-token', user })));
+    expect((await auth.signIn(user.email, password)).id).toBe(user.id);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['https://auth.test/auth/login', 'https://auth.test/auth/signup']);
+    expect(JSON.parse(fetchMock.mock.calls[1][1]?.body as string).id).toBe(user.id);
+    expect(hasXanoSession(user.id)).toBe(true);
+    await vi.waitFor(() => expect(syncAllForUser).toHaveBeenCalledWith(user));
+  });
+
   it('não aceita token legado para sync antes de validar /auth/me', async () => {
     setXanoToken('legacy', true);
     expect(hasXanoSession('user-a')).toBe(false);
@@ -86,7 +122,7 @@ describe('sessão Xano vinculada à conta local', () => {
     const user = await local.signUp({ name: 'A', email: 'a@test.com', username: 'user-a', password });
     const wallets = await db.wallets.toArray();
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ authToken: 'remote-token', user: { id: 'different', name: 'A', email: user.email } })));
-    await expect(auth.connectXano(user.id, password)).rejects.toThrow('UUID diferente');
+    await expect(auth.resumeCloudSession(user.id, password)).rejects.toThrow('UUID diferente');
     expect((await local.restoreSession())?.id).toBe(user.id);
     expect(await db.wallets.toArray()).toEqual(wallets);
     expect(getXanoToken()).toBeNull();

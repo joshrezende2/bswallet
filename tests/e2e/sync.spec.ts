@@ -46,7 +46,9 @@ async function signup(page: Page) {
   await expect(page.getByText('Sincronizado', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
   await page.getByRole('link', { name: 'Sincronização', exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Sincronização com Xano' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sincronização em nuvem' })).toBeVisible();
+  await expect(page.getByText('Conta BS Wallet conectada', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retomar sincronização' })).toHaveCount(0);
 }
 
 async function createTransaction(page: Page, name: string) {
@@ -94,15 +96,15 @@ test('salva sem aguardar rede, retoma offline e reconecta sessão expirada', asy
   await expect(page.getByText('Alterações pendentes: 0')).toBeVisible();
   remote.control.unauthorized = true;
   await page.getByRole('button', { name: 'Sincronizar', exact: true }).last().click();
-  await expect(page.getByRole('heading', { name: 'Conectar sua conta' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Confirmar conta BS Wallet' })).toBeVisible();
   await page.locator('input[name="password"]').fill('somente-teste-1234');
-  await page.getByRole('button', { name: 'Conectar ao Xano', exact: true }).click();
+  await page.getByRole('button', { name: 'Retomar sincronização', exact: true }).click();
   await expect(page.getByText('Sincronizado', { exact: true }).last()).toBeVisible();
   expect((await localWallet(page)).transactions).toHaveLength(2);
   expect(errors).toEqual([]);
   if (process.env.SYNC_SCREENSHOT) await page.screenshot({ path: process.env.SYNC_SCREENSHOT, fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole('heading', { name: 'Sincronização com Xano' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sincronização em nuvem' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
