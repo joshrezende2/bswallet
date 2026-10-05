@@ -137,6 +137,35 @@ async function remoteSnapshot(workspaceId: string) {
   return xanoApi<RemoteSnapshot>(`/sync/bootstrap?workspace_id=${encodeURIComponent(workspaceId)}`);
 }
 
+// Old importBackup versions queued an audit summary as if "backup" were a
+// remote entity. Archive that exact event durably; never acknowledge it as a
+// server write or discard unknown entity types. Financial imports stay queued.
+async function migrateLocalAuditEvents(ctx: Context) {
+  await db.transaction('rw', [db.wallets, db.syncMeta], async () => {
+    const state = await db.wallets.get(ctx.workspaceId);
+    if (!state) return;
+    const local = state.outbox.filter(change => {
+      const p = change.payload as Record<string, unknown> | null;
+      return change.entityType === 'backup' && change.action === 'import'
+        && change.entityId === state.id && p?.id === state.id
+        && p.scope === 'personal' && p.ownerUserId === ctx.user.id;
+    });
+    if (!local.length) return;
+    const meta = await db.syncMeta.get(state.id);
+    const events = new Map((meta?.localAuditEvents ?? []).map(event => [event.id, event]));
+    for (const event of local) {
+      events.set(event.id, event);
+      if (!state.audit.some(a => a.entityType === 'backup' && a.action === 'import' && a.entityId === state.id && a.actorUserId === ctx.user.id && a.timestamp === event.createdAt)) {
+        state.audit.push({ id: event.id, workspaceId: state.id, entityType: 'backup', entityId: event.entityId, action: event.action, actorUserId: ctx.user.id, actorName: ctx.user.name, timestamp: event.createdAt, scope: 'personal', ownerUserId: ctx.user.id, afterData: event.payload });
+      }
+    }
+    const archived = new Set(local.map(event => event.id));
+    state.outbox = state.outbox.filter(event => !archived.has(event.id));
+    await db.syncMeta.put({ ...meta, id: state.id, bootstrapQueued: meta?.bootstrapQueued ?? false, localAuditEvents: [...events.values()] });
+    await db.wallets.put(state);
+  });
+}
+
 async function replaceFromRemote(ctx: Context, revision: number) {
   assertSession(ctx, revision);
   const snapshot = await remoteSnapshot(ctx.workspaceId);
@@ -153,7 +182,7 @@ async function replaceFromRemote(ctx: Context, revision: number) {
       (remote[kind] as Entity[]).push(...current[kind].filter(item => privateToOthers(item) && !ids.has(item.id)));
     }
     remote.trash.push(...current.trash.filter(item => privateToOthers(item.snapshot) && !remote.trash.some(row => row.id === item.id)));
-    remote.audit.push(...current.audit.filter(item => privateToOthers(item) && !remote.audit.some(row => row.id === item.id)));
+    remote.audit.push(...current.audit.filter(item => (privateToOthers(item) || (item.entityType === 'backup' && item.action === 'import')) && !remote.audit.some(row => row.id === item.id)));
     remote.notices = current.notices;
     await db.wallets.put(remote);
     const previous = await db.syncMeta.get(ctx.workspaceId);
@@ -165,6 +194,7 @@ async function performSync(ctx: Context, revision: number) {
   if (!xanoReady() || !hasXanoSession(ctx.user.id)) return { status: 'local' as const };
   if (!online()) return { status: 'offline' as const };
   await ensureBootstrapOutbox(ctx);
+  await migrateLocalAuditEvents(ctx);
   const state = await db.wallets.get(ctx.workspaceId);
   if (!state) throw new Error('Família não encontrada para sincronização.');
   const sent = state.outbox.map(change => {

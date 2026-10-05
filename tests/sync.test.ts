@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '../src/data/db';
 import { initialWallet } from '../src/data/factory';
-import { walletService } from '../src/data/wallet-service';
+import { record, recordAudit, walletService } from '../src/data/wallet-service';
 import { hydrateUserFromXano, isSyncing, startAutoSync, syncWallet } from '../src/data/sync';
 import { xanoApi, XanoError } from '../src/data/xano/client';
 import type { Context, User } from '../src/domain/types';
@@ -41,6 +41,48 @@ beforeEach(async () => {
 afterEach(() => { cleanup?.(); cleanup = undefined; vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('sincronização automática offline-first', () => {
+  it('migra resumo legado de backup para auditoria durável e envia importações financeiras normalmente', async () => {
+    await create('Dado importado');
+    const state = (await db.wallets.get(ctx.workspaceId))!;
+    record(state, ctx, 'backup', 'import', { id: state.id, scope: 'personal', ownerUserId: user.id });
+    const legacy = state.outbox.at(-1)!;
+    const audit = state.audit.filter(a => a.entityType === 'backup');
+    await db.wallets.put(state);
+    expect((await syncWallet(ctx)).status).toBe('synced');
+    expect((await db.syncMeta.get(state.id))!.localAuditEvents).toEqual([legacy]);
+    expect((await db.wallets.get(state.id))!.audit).toEqual(expect.arrayContaining(audit));
+    expect((await db.wallets.get(state.id))!.outbox).toHaveLength(0);
+    expect(api.mock.calls.filter(([, init]) => init?.method === 'POST').map(([path]) => path)).toEqual(['/sync/transactions']);
+    await syncWallet(ctx);
+    expect((await db.syncMeta.get(state.id))!.localAuditEvents).toEqual([legacy]);
+    expect((await db.wallets.get(state.id))!.audit).toEqual(expect.arrayContaining(audit));
+  });
+
+  it('auditoria local nova não cria uma operação financeira', async () => {
+    const state = (await db.wallets.get(ctx.workspaceId))!;
+    recordAudit(state, ctx, 'backup', 'import', { id: state.id, scope: 'personal', ownerUserId: user.id });
+    expect(state.audit.at(-1)).toMatchObject({ entityType: 'backup', action: 'import' });
+    expect(state.outbox).toHaveLength(0);
+  });
+
+  it('não ignora tipos desconhecidos nem remove operações financeiras quando o servidor falha', async () => {
+    await create();
+    const state = (await db.wallets.get(ctx.workspaceId))!;
+    const financial = structuredClone(state.outbox);
+    record(state, ctx, 'backup', 'import', { id: state.id, scope: 'personal', ownerUserId: user.id });
+    const legacy = state.outbox.at(-1)!;
+    await db.wallets.put(state);
+    api.mockRejectedValueOnce(new XanoError(500, 'Falha real'));
+    await expect(syncWallet(ctx)).rejects.toThrow('Falha real');
+    expect((await db.wallets.get(state.id))!.outbox).toEqual(financial);
+    expect((await db.syncMeta.get(state.id))!.localAuditEvents).toEqual([legacy]);
+    const current = (await db.wallets.get(state.id))!;
+    current.outbox = [{ ...legacy, entityType: 'unknown' }];
+    await db.wallets.put(current);
+    await expect(syncWallet(ctx)).rejects.toThrow('Entidade sem mapeamento Xano: unknown');
+    expect((await db.wallets.get(state.id))!.outbox).toEqual(current.outbox);
+  });
+
   it('reenvia uma operação antiga após record.person_id sem perder o lançamento nem limpar IndexedDB', async () => {
     const wallet = (await db.wallets.get(ctx.workspaceId))!;
     const [tx] = await walletService.createTransaction(ctx, { name: 'Teste Sync', amount: 100, type: 'expense', status: 'confirmed', transactionDate: '2026-10-05', competenceDate: '2026-10-05', categoryId: wallet.categories.find(c => c.type !== 'income')!.id, paymentMode: 'single', scope: 'shared' });

@@ -1,9 +1,9 @@
 import Dexie, { type Table } from 'dexie';
-import type { Attachment, User, WalletState } from '../domain/types';
+import type { Attachment, LocalChange, User, WalletState } from '../domain/types';
 
 export interface Credential { userId: string; salt: string; hash: string; iterations: number; }
 export interface SessionRecord { id: string; userId: string; expiresAt: number; persistent: boolean; }
-export interface SyncMeta { id: string; bootstrapQueued: boolean; lastAttemptAt?: string; lastSuccessAt?: string; lastError?: string; }
+export interface SyncMeta { id: string; bootstrapQueued: boolean; lastAttemptAt?: string; lastSuccessAt?: string; lastError?: string; localAuditEvents?: LocalChange[]; }
 
 export class WalletDatabase extends Dexie {
   users!: Table<User, string>;

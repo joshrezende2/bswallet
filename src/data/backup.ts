@@ -3,7 +3,7 @@ import { db } from './db';
 import { auth } from './auth';
 import { base } from './factory';
 import { exportState, downloadBlob } from './exports';
-import { record, validateRelations } from './wallet-service';
+import { record, recordAudit, validateRelations } from './wallet-service';
 import { memberOf, requireWrite } from '../domain/permissions';
 import { schemas, validateEntity } from '../domain/validation';
 import { entityKinds, type Attachment, type Context, type Entity, type Kind, type Scope, type WalletState } from '../domain/types';
@@ -84,7 +84,9 @@ export async function importBackup(ctx: Context, input: unknown) {
       const attachment: Attachment = { ...base(state.id, ctx.user.id, transaction.scope), transactionId: transaction.id, fileName: a.fileName, mimeType: a.mimeType, size: a.size, checksum: a.checksum, blob: a.blob };
       await db.attachments.add(attachment);
     }
-    record(state, ctx, 'backup', 'import', { id: state.id, scope: 'personal', ownerUserId: ctx.user.id }, { exportedAt: backup.exportedAt, records: imported.length });
+    // Every imported entity has its own sync operation above. This summary is
+    // local audit metadata, not a remote "backup" table or financial mutation.
+    recordAudit(state, ctx, 'backup', 'import', { id: state.id, scope: 'personal', ownerUserId: ctx.user.id }, { exportedAt: backup.exportedAt, records: imported.length });
     await db.wallets.put(state); return imported.length;
   });
 }
