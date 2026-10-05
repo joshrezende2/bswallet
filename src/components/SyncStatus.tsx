@@ -6,7 +6,7 @@ import { getXanoToken } from '../data/xano/client';
 import { xanoConfig, xanoReady } from '../data/xano/config';
 import { useWallet } from './WalletContext';
 
-export function SyncStatus() {
+export function SyncStatus({ detailed = false }: { detailed?: boolean }) {
   const { ctx } = useWallet();
   const [online, setOnline] = useState(navigator.onLine);
   const busy = useSyncExternalStore(subscribeSync, () => isSyncing(ctx.workspaceId));
@@ -29,5 +29,5 @@ export function SyncStatus() {
   else if (info?.meta?.lastError) { label = 'Não foi possível sincronizar'; detail = 'Seus dados continuam salvos neste dispositivo'; }
   else if (!connected) { detail = 'Entre no Xano para sincronizar seus dados'; }
   else if (info && !info.pending && info.meta?.lastSuccessAt) { label = 'Sincronizado'; detail = 'Dados atualizados na nuvem'; }
-  return <div className="storage-status" role="status"><span className={`status-dot ${online ? '' : 'is-offline'}`} /><div><strong>{label}</strong><small>{detail}</small>{info?.meta?.lastSuccessAt && <small>Última sincronização: {new Date(info.meta.lastSuccessAt).toLocaleString('pt-BR')}</small>}{xanoConfig.enabled && <button className="install-button" disabled={!online || !connected || busy} onClick={() => { void syncWallet(ctx).catch(() => undefined); }}>Sincronizar</button>}</div></div>;
+  return <div className="storage-status" role="status"><span className={`status-dot ${online ? '' : 'is-offline'}`} /><div><strong>{label}</strong><small>{detail}</small>{detailed && info && <small>Alterações pendentes: {info.pending}</small>}{info?.meta?.lastSuccessAt ? <small>Última sincronização: {new Date(info.meta.lastSuccessAt).toLocaleString('pt-BR')}</small> : detailed && <small>Nenhuma sincronização concluída ainda</small>}{xanoConfig.enabled && <button className="install-button" disabled={!online || !connected || busy} onClick={() => { void syncWallet(ctx).catch(() => undefined); }}>Sincronizar</button>}</div></div>;
 }
