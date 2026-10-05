@@ -2,8 +2,8 @@ import { db } from './db';
 import { initialWallet } from './factory';
 import type { User } from '../domain/types';
 import { xanoReady } from './xano/config';
-import { XanoError, clearXanoToken, getXanoToken } from './xano/client';
-import { type RemoteUser, xanoChangePassword, xanoSignIn, xanoSignOut, xanoSignUp } from './xano/auth';
+import { XanoError, clearXanoToken, getXanoSessionUserId, getXanoToken, hasXanoSession, reportXanoSessionError } from './xano/client';
+import { type RemoteUser, validateXanoSession, xanoChangePassword, xanoSignIn, xanoSignOut, xanoSignUp } from './xano/auth';
 
 export interface SignUpInput { name: string; email: string; username: string; password: string; }
 export interface AuthProvider {
@@ -128,8 +128,14 @@ export class LocalAuthProvider implements AuthProvider {
   }
 }
 
-function shouldFallback(error: unknown) {
-  return !(error instanceof XanoError) || error.status === 0 || error.status === 404 || error.status >= 500;
+function shouldFallback(error: unknown) { return error instanceof XanoError && (error.status === 0 || error.status >= 500); }
+
+function backgroundSync(user: User, hydrate = false) {
+  void import('./sync').then(async ({ syncAllForUser, hydrateUserFromXano }) => {
+    if (!hasXanoSession(user.id)) return;
+    if (hydrate) await hydrateUserFromXano(user);
+    else await syncAllForUser(user);
+  }).catch(reportXanoSessionError);
 }
 
 class HybridAuthProvider implements AuthProvider {
@@ -137,22 +143,25 @@ class HybridAuthProvider implements AuthProvider {
 
   async signUp(input: SignUpInput) {
     const normalized = normalizedSignup(input);
+    clearXanoToken();
     if (!cloudUsable()) return this.local.signUp(normalized);
     const id = crypto.randomUUID();
     try {
       const remote = await xanoSignUp({ id, name: normalized.name, email: normalized.email, password: normalized.password }, true);
       if (remote.id !== id) throw new Error('O Xano não preservou o UUID gerado pelo BS Wallet.');
       const user = await this.local.signUpWithId(normalized, id);
-      try { const { syncAllForUser } = await import('./sync'); await syncAllForUser(user); } catch { /* Outbox remains local and retries later. */ }
+      backgroundSync(user);
       return user;
     } catch (error) {
       clearXanoToken();
-      if (shouldFallback(error)) return this.local.signUp(normalized);
+      reportXanoSessionError(error);
+      if (shouldFallback(error)) return this.local.signUpWithId(normalized, id);
       throw error;
     }
   }
 
   async signIn(identifier: string, password: string, remember = true) {
+    clearXanoToken();
     let localUser: User | null = null;
     let localError: unknown;
     try { localUser = await this.local.signIn(identifier, password, remember); } catch (error) { localError = error; }
@@ -167,24 +176,44 @@ class HybridAuthProvider implements AuthProvider {
             remote = await xanoSignUp({ id: localUser.id, name: localUser.name, email: localUser.email, password }, remember);
           }
           if (remote.id !== localUser.id) throw new Error('A conta remota possui um UUID diferente do cadastro local.');
-          const { syncAllForUser } = await import('./sync'); await syncAllForUser(localUser);
-        } catch { clearXanoToken(); }
+          backgroundSync(localUser);
+        } catch (error) { clearXanoToken(); reportXanoSessionError(error); }
       }
       return localUser;
     }
 
     if (!cloudUsable()) throw localError;
     if (!identifier.includes('@')) throw new Error('No primeiro acesso neste dispositivo, entre com seu e-mail. O username remoto será habilitado quando esse campo existir na tabela user do Xano.');
-    const remote = await xanoSignIn(identifier.trim().toLowerCase(), password, remember);
-    const user = await this.local.cacheRemoteUser(remote, password, remember);
     try {
-      const { hydrateUserFromXano } = await import('./sync');
-      const hydrated = await hydrateUserFromXano(user);
-      if (!hydrated) await this.local.ensureWallet(user);
-    } catch {
-      await this.local.ensureWallet(user);
+      const remote = await xanoSignIn(identifier.trim().toLowerCase(), password, remember);
+      const user = await this.local.cacheRemoteUser(remote, password, remember);
+      const hasWallet = (await db.wallets.toArray()).some(wallet => wallet.members.some(member => member.userId === user.id));
+      if (hasWallet) backgroundSync(user, true);
+      else { const { hydrateUserFromXano } = await import('./sync'); await hydrateUserFromXano(user); }
+      return user;
+    } catch (error) {
+      clearXanoToken(); reportXanoSessionError(error); throw error;
     }
-    return user;
+  }
+
+  async connectXano(userId: string, password: string, remember = true) {
+    const user = await this.local.requireUser(userId);
+    if (!xanoReady()) throw new Error('Configure a conexão Xano antes de conectar sua conta.');
+    if (!online()) throw new Error('Conecte-se à internet para vincular sua conta ao Xano.');
+    clearXanoToken();
+    try {
+      let remote: RemoteUser;
+      try { remote = await xanoSignIn(user.email, password, remember); }
+      catch (error) {
+        if (!(error instanceof XanoError) || ![401, 403].includes(error.status)) throw error;
+        remote = await xanoSignUp({ id: user.id, name: user.name, email: user.email, password }, remember);
+      }
+      if (remote.id !== user.id) throw new Error('A conta Xano possui um UUID diferente do cadastro local. Seus dados foram preservados; é necessário migrar essa conta antes de sincronizar.');
+      backgroundSync(user);
+      return user;
+    } catch (error) {
+      clearXanoToken(); reportXanoSessionError(error); throw error;
+    }
   }
 
   async requestPasswordReset(email: string) { return this.local.requestPasswordReset(email); }
@@ -196,8 +225,14 @@ class HybridAuthProvider implements AuthProvider {
 
   async restoreSession() {
     const user = await this.local.restoreSession();
+    const remoteUserId = getXanoSessionUserId();
+    if (!user || (remoteUserId && remoteUserId !== user.id)) {
+      clearXanoToken();
+      if (user) reportXanoSessionError(new Error('A sessão Xano pertence a outra conta. Conecte sua conta novamente.'));
+      return user;
+    }
     if (user && cloudUsable() && getXanoToken()) {
-      void import('./sync').then(({ syncAllForUser }) => syncAllForUser(user)).catch(() => undefined);
+      void validateXanoSession(user.id).then(valid => { if (valid) backgroundSync(user); }).catch(reportXanoSessionError);
     }
     return user;
   }
@@ -207,7 +242,7 @@ class HybridAuthProvider implements AuthProvider {
   async changePassword(userId: string, current: string, next: string) {
     if (xanoReady()) {
       if (!online()) throw new Error('Conecte-se à internet para alterar a senha de uma conta sincronizada.');
-      if (!getXanoToken()) throw new Error('Entre novamente para alterar sua senha no Xano.');
+      if (!hasXanoSession(userId)) throw new Error('Entre novamente para alterar sua senha no Xano.');
       await xanoChangePassword(current, next);
     }
     return this.local.changePassword(userId, current, next);

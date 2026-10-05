@@ -1,3 +1,4 @@
+import { xanoReady } from '../data/xano/config';
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Check, LockKeyhole, WifiOff } from 'lucide-react';
 import { auth } from '../data/auth';
@@ -21,5 +22,5 @@ export function AuthPage({ onLogin }: { onLogin: (user: User) => void }) {
     {mode === 'signup' && <Field label="Confirmar senha"><input name="confirm" type="password" autoComplete="new-password" required /></Field>}
     {mode === 'login' && <div className="auth-options"><label className="check"><input type="checkbox" name="remember" defaultChecked /> Manter conectado</label><button type="button" className="text-button" onClick={() => { setMode('reset'); setError(''); }}>Esqueci a senha</button></div>}
     <ErrorText error={error} /><Button disabled={busy} type="submit">{busy ? 'Aguarde…' : mode === 'signup' ? 'Criar minha carteira' : mode === 'reset' ? 'Verificar recuperação' : 'Entrar na minha carteira'}<ArrowRight size={18} /></Button>
-  </form><p className="auth-switch">{mode === 'login' ? 'Primeira vez por aqui? ' : 'Já tem uma conta? '}<button className="text-button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }}>{mode === 'login' ? 'Criar conta' : 'Entrar'}</button></p>{import.meta.env.DEV && <Button variant="secondary" disabled={busy} onClick={demo}>Explorar demonstração local</Button>}<div className="local-note"><LockKeyhole size={18} /><span>Modo local: sua conta e seus dados ficam neste navegador. Sincronização e recuperação por e-mail ainda não estão conectadas.</span></div></div></section></div>;
+  </form><p className="auth-switch">{mode === 'login' ? 'Primeira vez por aqui? ' : 'Já tem uma conta? '}<button className="text-button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }}>{mode === 'login' ? 'Criar conta' : 'Entrar'}</button></p>{import.meta.env.DEV && <Button variant="secondary" disabled={busy} onClick={demo}>Explorar demonstração local</Button>}<div className="local-note"><LockKeyhole size={18} /><span>{xanoReady() ? 'Sincronização com Xano disponível. Seus dados são salvos primeiro neste dispositivo e enviados em segundo plano quando sua conta estiver conectada.' : 'Modo local: sua conta e seus dados ficam neste navegador. A sincronização em nuvem está desativada nesta versão.'}</span></div></div></section></div>;
 }

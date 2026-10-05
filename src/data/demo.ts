@@ -1,4 +1,4 @@
-import { auth } from './auth';
+import { auth, LocalAuthProvider } from './auth';
 import { db } from './db';
 import { base } from './factory';
 import { walletService } from './wallet-service';
@@ -7,7 +7,8 @@ import type { Context } from '../domain/types';
 export async function openDemo() {
   if (!import.meta.env.DEV) throw new Error('Demonstração disponível somente em desenvolvimento.');
   const unique = crypto.randomUUID().replace(/-/g, '');
-  const user = await auth.signUp({ name: 'Família Demo', email: `demo-${unique}@example.invalid`, username: `demo_${unique.slice(0, 20)}`, password: crypto.randomUUID() + crypto.randomUUID() });
+  await auth.signOut();
+  const user = await new LocalAuthProvider().signUp({ name: 'Família Demo', email: `demo-${unique}@example.invalid`, username: `demo_${unique.slice(0, 20)}`, password: crypto.randomUUID() + crypto.randomUUID() });
   const state = (await db.wallets.toArray()).find(w => w.workspace.masterAdminUserId === user.id)!;
   state.demo = true; state.workspace.name = 'Família Demo';
   await db.wallets.put(state); const ctx = { user, workspaceId: state.id }; await seed(ctx); return user;

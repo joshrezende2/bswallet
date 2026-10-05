@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '../src/data/db';
 import { initialWallet } from '../src/data/factory';
 import { walletService } from '../src/data/wallet-service';
-import { isSyncing, startAutoSync, syncWallet } from '../src/data/sync';
+import { hydrateUserFromXano, isSyncing, startAutoSync, syncWallet } from '../src/data/sync';
 import { xanoApi, XanoError } from '../src/data/xano/client';
 import type { Context, User } from '../src/domain/types';
 
-const control = vi.hoisted(() => ({ enabled: true, token: 'test-token' as string | null }));
+const control = vi.hoisted(() => ({ enabled: true, token: 'test-token' as string | null, revision: 1 }));
 vi.mock('../src/data/xano/config', () => ({ xanoConfig: { enabled: true }, xanoReady: () => control.enabled }));
-vi.mock('../src/data/xano/client', async importOriginal => ({ ...await importOriginal<typeof import('../src/data/xano/client')>(), getXanoToken: () => control.token, xanoApi: vi.fn() }));
+vi.mock('../src/data/xano/client', async importOriginal => ({ ...await importOriginal<typeof import('../src/data/xano/client')>(), getXanoToken: () => control.token, hasXanoSession: (id: string) => Boolean(control.token) && id === 'user-test', getXanoSessionRevision: () => control.revision, getXanoSessionUserId: () => control.token ? 'user-test' : null, xanoApi: vi.fn() }));
 vi.mock('../src/data/auth', () => ({ auth: { requireUser: vi.fn().mockResolvedValue(undefined) } }));
 const api = vi.mocked(xanoApi);
 const user: User = { id: 'user-test', name: 'Teste', email: 'test@example.com', username: 'test', createdAt: '2026-01-01' };
@@ -16,9 +16,9 @@ let ctx: Context;
 let cleanup: (() => void) | undefined;
 const deferred = () => { let resolve!: () => void; const promise = new Promise<void>(r => { resolve = r; }); return { promise, resolve }; };
 
-async function create(name = 'Compra') {
+async function create(name = 'Compra', scope: 'shared' | 'personal' = 'shared') {
   const wallet = (await db.wallets.get(ctx.workspaceId))!;
-  return walletService.createTransaction(ctx, { name, amount: 1000, type: 'expense', status: 'confirmed', transactionDate: '2026-10-05', competenceDate: '2026-10-05', categoryId: wallet.categories.find(c => c.type !== 'income')!.id, paymentMode: 'single', scope: 'shared' });
+  return walletService.createTransaction(ctx, { name, amount: 1000, type: 'expense', status: 'confirmed', transactionDate: '2026-10-05', competenceDate: '2026-10-05', categoryId: wallet.categories.find(c => c.type !== 'income')!.id, paymentMode: 'single', scope });
 }
 async function snapshot() {
   const wallet = (await db.wallets.get(ctx.workspaceId))!;
@@ -28,7 +28,7 @@ async function snapshot() {
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
   vi.stubGlobal('navigator', { onLine: true });
-  control.enabled = true; control.token = 'test-token';
+  control.enabled = true; control.token = 'test-token'; control.revision = 1;
   api.mockReset();
   await db.wallets.clear(); await db.syncMeta.clear(); await db.attachments.clear();
   const wallet = initialWallet(user);
@@ -144,5 +144,84 @@ describe('sincronização automática offline-first', () => {
     expect(saved.outbox.some(c => c.entityType === 'categories')).toBe(true);
     expect(saved.categories[0].syncStatus).toBe('conflict');
     expect((await db.syncMeta.get(ctx.workspaceId))!.lastError).toContain('conflitos');
+  });
+
+  it('hidratação de família existente preserva edições pendentes quando o envio falha', async () => {
+    const [tx] = await create('Minha edição local');
+    const before = (await db.wallets.get(ctx.workspaceId))!;
+    api.mockImplementation(async path => {
+      if (path === '/sync/workspaces') return [{ workspace_id: ctx.workspaceId }];
+      throw new XanoError(0, 'Conexão interrompida');
+    });
+    await expect(hydrateUserFromXano(user)).rejects.toThrow('Conexão interrompida');
+    const saved = (await db.wallets.get(ctx.workspaceId))!;
+    expect(saved.transactions).toEqual([tx]);
+    expect(saved.outbox).toEqual(before.outbox);
+    expect(api.mock.calls.some(([path]) => path.startsWith('/sync/bootstrap'))).toBe(false);
+    expect((await db.syncMeta.get(ctx.workspaceId))!.lastSuccessAt).toBeUndefined();
+  });
+
+  it('envia snapshot completo e escopo privado ao excluir um lançamento pessoal', async () => {
+    const [tx] = await create('Despesa privada', 'personal');
+    await walletService.remove(ctx, 'transactions', tx.id);
+    const local = (await db.wallets.get(ctx.workspaceId))!;
+    const deletion = local.outbox.find(change => change.action === 'delete')!;
+    expect(deletion.payload).toMatchObject({ id: tx.id, name: tx.name, amount: tx.amount, categoryId: tx.categoryId, scope: 'personal', ownerUserId: user.id });
+    await syncWallet(ctx);
+    const sent = api.mock.calls.filter(([, init]) => init?.method === 'POST').map(([, init]) => JSON.parse(init!.body as string));
+    expect(sent.find(envelope => envelope.action === 'delete')).toMatchObject({
+      entity_id: tx.id,
+      record: { scope: 'private', owner_user_id: user.id },
+      payload: { name: tx.name, amount: tx.amount, categoryId: tx.categoryId, scope: 'personal', ownerUserId: user.id },
+    });
+  });
+
+  it('interrompe POSTs e pull se a sessão muda durante um envio', async () => {
+    await create('A'); await create('B');
+    const pending = (await db.wallets.get(ctx.workspaceId))!.outbox;
+    const entered = deferred(), gate = deferred();
+    api.mockImplementation(async () => { entered.resolve(); await gate.promise; return { ok: true }; });
+    const request = syncWallet(ctx);
+    await entered.promise;
+    control.revision += 1;
+    gate.resolve();
+    await expect(request).rejects.toThrow('sessão Xano mudou');
+    expect(api).toHaveBeenCalledTimes(1);
+    expect(api.mock.calls[0][1]?.method).toBe('POST');
+    expect((await db.wallets.get(ctx.workspaceId))!.outbox).toEqual(pending);
+    expect((await db.syncMeta.get(ctx.workspaceId))!.lastSuccessAt).toBeUndefined();
+  });
+
+  it('preserva registros, lixeira e auditoria privados de outra conta durante pull', async () => {
+    const [tx] = await create('Privado de outra conta', 'personal');
+    const wallet = (await db.wallets.get(ctx.workspaceId))!;
+    const privateTx = { ...tx, ownerUserId: 'other-user' };
+    wallet.transactions = [privateTx]; wallet.outbox = [];
+    const privateAudit = { ...wallet.audit[0], ownerUserId: 'other-user' };
+    wallet.audit = [privateAudit];
+    const privateTrash = { id: 'private-trash', kind: 'transactions' as const, snapshot: { ...privateTx, id: 'deleted-private' }, deletedAt: '2026-10-01T00:00:00.000Z', deletedBy: 'other-user', purgeAt: '2026-10-31T00:00:00.000Z' };
+    wallet.trash = [privateTrash];
+    await db.wallets.put(wallet);
+    api.mockResolvedValue({ workspace: { id: wallet.id, name: wallet.workspace.name, created_by: user.id }, transactions: [], audit_logs: [], trash: [] });
+    expect((await syncWallet(ctx)).status).toBe('synced');
+    const saved = (await db.wallets.get(ctx.workspaceId))!;
+    expect(saved.transactions).toEqual([privateTx]);
+    expect(saved.audit).toContainEqual(privateAudit);
+    expect(saved.trash).toContainEqual(privateTrash);
+    expect(api.mock.calls.every(([, init]) => init?.method !== 'POST')).toBe(true);
+  });
+
+  it('bootstrap envia apenas registros legíveis pela conta autenticada', async () => {
+    const wallet = (await db.wallets.get(ctx.workspaceId))!;
+    const privateCategory = { ...wallet.categories[0], id: 'other-private-category', ownerUserId: 'other-user', scope: 'personal' as const };
+    const ownCategory = { ...wallet.categories[0], id: 'own-private-category', ownerUserId: user.id, scope: 'personal' as const };
+    wallet.categories.push(privateCategory, ownCategory);
+    await db.wallets.put(wallet); await db.syncMeta.delete(wallet.id);
+    await syncWallet(ctx);
+    const envelopes = api.mock.calls.filter(([, init]) => init?.method === 'POST').map(([, init]) => JSON.parse(init!.body as string));
+    expect(envelopes.some(envelope => envelope.entity_id === privateCategory.id)).toBe(false);
+    expect(envelopes.some(envelope => envelope.entity_id === ownCategory.id)).toBe(true);
+    expect(envelopes.some(envelope => envelope.entity_id === wallet.categories[0].id)).toBe(true);
+    expect((await db.wallets.get(wallet.id))!.categories).toContainEqual(privateCategory);
   });
 });

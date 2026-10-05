@@ -1,3 +1,5 @@
+> Documento histórico de planejamento. O frontend já possui integração com os endpoints de `xano/bs_wallet_endpoints.xs`; consulte o README para configuração, publicação e limitações atuais. As afirmações abaixo sobre integração ainda não implementada descrevem o estado de 17/09/2026.
+
 # BS Wallet — plano de integração com Xano
 
 Verificação da documentação: 17/09/2026. Este documento define trabalho planejado. **Nenhuma instância, tabela, API, autenticação remota ou sincronização Xano foi provisionada ou validada.** Nenhum workspace Xano foi selecionado e não havia ferramenta Xano de leitura de especificações disponível nesta execução.
