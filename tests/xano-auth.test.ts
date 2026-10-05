@@ -122,7 +122,8 @@ describe('sessão Xano vinculada à conta local', () => {
     const user = await local.signUp({ name: 'A', email: 'a@test.com', username: 'user-a', password });
     const wallets = await db.wallets.toArray();
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ authToken: 'remote-token', user: { id: 'different', name: 'A', email: user.email } })));
-    await expect(auth.resumeCloudSession(user.id, password)).rejects.toThrow('UUID diferente');
+    await auth.signIn(user.email, password);
+    expect(getXanoSessionError()).toContain('UUID diferente');
     expect((await local.restoreSession())?.id).toBe(user.id);
     expect(await db.wallets.toArray()).toEqual(wallets);
     expect(getXanoToken()).toBeNull();
@@ -179,4 +180,25 @@ describe('sessão Xano vinculada à conta local', () => {
     await vi.advanceTimersByTimeAsync(15_000); await assertion;
     expect(hasXanoSession('user-a')).toBe(true);
   });
+});
+
+
+it.each([401, 403])('invalida token com HTTP %s e usa mensagem de login normal', async status => {
+  setXanoToken('token-a', false, 'user-a');
+  fetchMock.mockResolvedValue(new Response('{}', { status }));
+  await expect(xanoApi('/sync/workspaces')).rejects.toThrow();
+  expect(getXanoToken()).toBeNull();
+  expect(getXanoSessionError()).toBe('Sua sessão expirou. Entre novamente para continuar sincronizando.');
+});
+
+it('login sem usuário na resposta consulta auth/me e persiste somente token individual', async () => {
+  const user = { id: 'new-user', name: 'Maria', email: 'maria@test.com' };
+  fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ authToken: 'maria-token' })))
+    .mockResolvedValueOnce(new Response(JSON.stringify(user)));
+  expect((await auth.signIn(user.email, password, false)).id).toBe(user.id);
+  expect(fetchMock.mock.calls[1][0]).toBe('https://auth.test/auth/me');
+  expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get('Authorization')).toBe('Bearer maria-token');
+  expect(sessionStorage.getItem('bs-wallet-xano-session-token')).toBe('maria-token');
+  expect(localStorage.getItem('bs-wallet-xano-token')).toBeNull();
+  expect(hasXanoSession(user.id)).toBe(true);
 });

@@ -68,11 +68,11 @@ O fluxo de publicação privada e a migração para Lovable estão em [docs/GITH
 
 ## Sincronização e publicação
 
-O build de produção lê `.env.production`, que contém somente `VITE_XANO_SYNC_ENABLED=true` e as URLs públicas das APIs. Credenciais, tokens e chaves administrativas nunca entram nesse arquivo. Para desenvolvimento, copie-o para `.env.local` (ignorado pelo Git); os testes unitários forçam a integração real desligada.
+As URLs públicas das APIs e a sincronização habilitada são defaults do aplicativo, mesmo sem arquivos `.env`. As variáveis de ambiente permitem overrides opcionais; `VITE_XANO_SYNC_ENABLED=false` desativa explicitamente a nuvem. Credenciais, tokens e chaves administrativas nunca entram nesses arquivos. Os testes unitários forçam a integração real desligada.
 
 O grupo **Authentication** (`https://xano.ab1midia.com.br/api:iJuDN1w_`) recebe o cadastro e o login dos usuários BS Wallet. O grupo **BS Wallet** (`https://xano.ab1midia.com.br/api:A-AE1sTc`) recebe as operações de sincronização com o token individual retornado pelo login. Não há login administrativo Xano no aplicativo.
 
-O cadastro e o login normais já iniciam a sincronização. Apenas sessões expiradas ou cadastros feitos offline precisam confirmar a senha do próprio BS Wallet em **Ajustes → Sincronização**. O UUID remoto deve corresponder ao local: identidades divergentes são informadas, sem substituir IDs nem apagar pendências. Sessão expirada permite reconectar na mesma tela. Uma falha temporária mantém os dados e a outbox; o app tenta novamente ao recuperar a internet, a cada minuto e manualmente. Alterações durante um envio disparam outra rodada sem concorrência no mesmo workspace/aba.
+O cadastro e o login normais já iniciam a sincronização usando o `authToken` individual no header `Authorization: Bearer`. Ajustes não possui formulário de credenciais. Sessões expiradas ou cadastros feitos offline usam **Entrar novamente** para abrir o login normal, sem apagar dados ou pendências. O UUID remoto deve corresponder ao local: identidades divergentes são informadas, sem substituir IDs. Uma falha temporária mantém os dados e a outbox; o app tenta novamente ao recuperar a internet, a cada minuto e manualmente. Alterações durante um envio disparam outra rodada sem concorrência no mesmo workspace/aba.
 
 Salvar alterações no Git local não atualiza `bswallet.lovable.app`. É preciso enviar a branch ao repositório conectado ao Lovable e publicar a versão atualizada lá. Uma versão já instalada como PWA oferece a ação de atualização quando o novo build estiver publicado. Não limpe o IndexedDB para atualizar o aplicativo.
 

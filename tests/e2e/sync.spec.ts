@@ -17,10 +17,12 @@ async function backend(page: Page) {
     }
     if (url.endsWith('/auth/login')) { control.unauthorized = false; return reply({ authToken: 'test-token', user }); }
     if (url.endsWith('/auth/me')) return reply(user);
+    expect(route.request().headers().authorization).toBe('Bearer test-token');
     if (control.unauthorized) return reply({ message: 'Unauthorized' }, 401);
     if (control.fail) return reply({ message: 'Falha temporária simulada' }, 503);
     if (route.request().method() === 'POST') {
       const operation = route.request().postDataJSON();
+      expect(JSON.stringify(operation)).not.toMatch(/somente-teste-1234|xano_password|admin_token|api_key/);
       operations.push(operation);
       if (control.hold) await control.hold;
       const table = operation.table;
@@ -78,6 +80,9 @@ test('salva sem aguardar rede, retoma offline e reconecta sessão expirada', asy
   page.on('pageerror', error => errors.push(error.message));
   const remote = await backend(page);
   await signup(page);
+  await page.reload();
+  await expect(page.getByText('Sincronizado', { exact: true }).last()).toBeVisible();
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
   let release!: () => void;
   remote.control.hold = new Promise<void>(resolve => { release = resolve; });
   await createTransaction(page, 'Compra online');
@@ -95,12 +100,16 @@ test('salva sem aguardar rede, retoma offline e reconecta sessão expirada', asy
   await context.setOffline(false);
   await expect(page.getByText('Alterações pendentes: 0')).toBeVisible();
   remote.control.unauthorized = true;
-  await page.getByRole('button', { name: 'Sincronizar', exact: true }).last().click();
-  await expect(page.getByRole('heading', { name: 'Confirmar conta BS Wallet' })).toBeVisible();
+  await createTransaction(page, 'Compra com sessão expirada');
+  await expect(page.getByText('Sessão expirada', { exact: true }).last()).toBeVisible();
+  expect((await localWallet(page)).outbox).toHaveLength(1);
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Entrar novamente', exact: true }).last().click();
+  await page.getByLabel('E-mail ou username').fill('sync@example.invalid');
   await page.locator('input[name="password"]').fill('somente-teste-1234');
-  await page.getByRole('button', { name: 'Retomar sincronização', exact: true }).click();
+  await page.getByRole('button', { name: 'Entrar na minha carteira', exact: true }).click();
   await expect(page.getByText('Sincronizado', { exact: true }).last()).toBeVisible();
-  expect((await localWallet(page)).transactions).toHaveLength(2);
+  expect((await localWallet(page)).transactions).toHaveLength(3);
   expect(errors).toEqual([]);
   if (process.env.SYNC_SCREENSHOT) await page.screenshot({ path: process.env.SYNC_SCREENSHOT, fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });

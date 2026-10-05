@@ -196,26 +196,6 @@ class HybridAuthProvider implements AuthProvider {
     }
   }
 
-  async resumeCloudSession(userId: string, password: string, remember = true) {
-    const user = await this.local.requireUser(userId);
-    if (!xanoReady()) throw new Error('A conexão com o servidor precisa ser configurada pelo responsável pelo aplicativo.');
-    if (!online()) throw new Error('Conecte-se à internet para confirmar sua conta BS Wallet.');
-    clearXanoToken();
-    try {
-      let remote: RemoteUser;
-      try { remote = await xanoSignIn(user.email, password, remember); }
-      catch (error) {
-        if (!(error instanceof XanoError) || ![401, 403].includes(error.status)) throw error;
-        remote = await xanoSignUp({ id: user.id, name: user.name, email: user.email, password }, remember);
-      }
-      if (remote.id !== user.id) throw new Error('A conta BS Wallet na nuvem possui um UUID diferente do cadastro local. Seus dados foram preservados; é necessário migrar essa conta antes de sincronizar.');
-      backgroundSync(user);
-      return user;
-    } catch (error) {
-      clearXanoToken(); reportXanoSessionError(error); throw error;
-    }
-  }
-
   async requestPasswordReset(email: string) { return this.local.requestPasswordReset(email); }
 
   async signOut() {
@@ -228,7 +208,7 @@ class HybridAuthProvider implements AuthProvider {
     const remoteUserId = getXanoSessionUserId();
     if (!user || (remoteUserId && remoteUserId !== user.id)) {
       clearXanoToken();
-      if (user) reportXanoSessionError(new Error('A sessão de sincronização pertence a outra conta. Confirme sua conta BS Wallet.'));
+      if (user) reportXanoSessionError(new Error('A sessão de sincronização pertence a outra conta. Entre novamente no BS Wallet.'));
       return user;
     }
     if (user && cloudUsable() && getXanoToken()) {

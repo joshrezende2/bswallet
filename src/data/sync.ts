@@ -142,7 +142,7 @@ async function replaceFromRemote(ctx: Context, revision: number) {
   const snapshot = await remoteSnapshot(ctx.workspaceId);
   assertSession(ctx, revision);
   const remote = snapshotToWalletState(snapshot, ctx.user);
-  if (remote.id !== ctx.workspaceId) throw new Error('Snapshot Xano pertence a outra família.');
+  if (remote.id !== ctx.workspaceId) throw new Error('Snapshot remoto pertence a outra família.');
   await db.transaction('rw', [db.wallets, db.syncMeta], async () => {
     const current = await db.wallets.get(ctx.workspaceId);
     if (!current || current.outbox.length) return;

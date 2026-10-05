@@ -95,7 +95,7 @@ function errorMessage(payload: unknown, fallback: string) {
 async function request<T>(baseUrl: string, path: string, init: RequestInit = {}, authenticated = true): Promise<T> {
   if (!xanoReady()) throw new XanoError(0, 'A sincronização em nuvem ainda não está habilitada.');
   const token = authenticated ? getXanoToken() : null;
-  if (authenticated && !token) throw new XanoError(401, 'Confirme sua conta BS Wallet para sincronizar.');
+  if (authenticated && !token) throw new XanoError(401, 'Sua sessão expirou. Entre novamente para continuar sincronizando.');
   const headers = new Headers(init.headers);
   if (!(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -112,16 +112,16 @@ async function request<T>(baseUrl: string, path: string, init: RequestInit = {},
       try { payload = JSON.parse(text); } catch { payload = text; }
     }
     if (!response.ok) {
-      const error = new XanoError(response.status, errorMessage(payload, `Xano respondeu com HTTP ${response.status}.`), payload);
-      if (response.status === 401 && token && getXanoToken() === token) {
-        clearXanoToken(); reportXanoSessionError(new Error('Sua sessão de sincronização expirou. Confirme sua conta BS Wallet.'));
+      const error = new XanoError(response.status, errorMessage(payload, `O servidor respondeu com HTTP ${response.status}.`), payload);
+      if ([401, 403].includes(response.status) && token && getXanoToken() === token) {
+        clearXanoToken(); reportXanoSessionError(new Error('Sua sessão expirou. Entre novamente para continuar sincronizando.'));
       }
       throw error;
     }
     return payload as T;
   } catch (error) {
     if (error instanceof XanoError) throw error;
-    throw new XanoError(0, controller.signal.aborted ? 'O Xano demorou para responder. Tente novamente.' : error instanceof Error ? error.message : 'Não foi possível acessar o Xano.');
+    throw new XanoError(0, controller.signal.aborted ? 'O servidor demorou para responder. Tente novamente.' : error instanceof Error ? error.message : 'Não foi possível acessar o servidor.');
   } finally {
     clearTimeout(timer);
     init.signal?.removeEventListener('abort', abort);

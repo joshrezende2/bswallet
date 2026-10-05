@@ -37,7 +37,7 @@ export async function validateXanoSession(userId: string) {
   if (!token) return false;
   try {
     const user = await xanoMe();
-    if (user?.id !== userId || user.active === false) throw new Error('A sessão de sincronização pertence a outra conta ou está inativa. Confirme sua conta BS Wallet.');
+    if (user?.id !== userId || user.active === false) throw new Error('A sessão de sincronização pertence a outra conta ou está inativa. Entre novamente no BS Wallet.');
     bindXanoSession(token, userId);
     return true;
   } catch (error) {
