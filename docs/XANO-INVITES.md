@@ -1,5 +1,19 @@
 # Convites multiusuário — contrato e implantação Xano
 
+## Estado da implantação — concluída em 05/10/2026
+
+**Backend publicado e validado na instância real**: os oito endpoints de convites (IDs Xano 1815–1822) e os 15 endpoints de sincronização revisados foram compilados e publicados pelo editor. Request History está desabilitado nos oito endpoints de convites. Nenhuma tabela, coluna, índice ou ID precisou ser recriado; o schema exigido já existia.
+
+Validação real com contas normais e authTokens independentes: **19 verificações passaram, nenhuma falhou e uma foi pulada**. Foram confirmados criação/listagem/resolução, cadastro do destinatário após o convite, TTL de sete dias, regeneração invalidando o token anterior, revogação, recusa, replay rejeitado, permissões concedidas e isolamento shared/private inclusive na auditoria. Tentativas de manipular UUID de outro workspace e dados privados foram rejeitadas. Listagens e auditoria não expõem token nem hash.
+
+Os testes concorrentes reais confirmaram create/create com somente um convite válido, accept/accept com somente uma membership e accept/revoke com somente uma transição vencedora. O índice unique e a trava transacional foram exercitados na instância, além da cobertura mock.
+
+A passagem real dos sete dias até a expiração **não foi aguardada**: esse único cenário foi pulado no teste remoto. A duração de sete dias foi verificada no expires_at real e a rejeição de convite expirado tem cobertura mock. As comparações temporais dos endpoints foram exercitadas com convites válidos, sem erro de tipo.
+
+As duas incompatibilidades descobertas durante a execução real foram corrigidas e retestadas: converter now antes de somar a duração e usar SHA-256 com raw=false para gravar hexadecimal na coluna text. Os arquivos versionados refletem as correções publicadas.
+
+**Não há passo manual pendente no painel Xano desta instância.** As instruções operacionais abaixo são referência para futuras instalações ou atualizações; não indicam trabalho pendente desta entrega. A publicação e validação do frontend são registradas no relatório da tarefa.
+
 ## Schema real reconciliado em 05/10/2026
 
 As duas tabelas já existem na branch v1/live e **não devem ser recriadas**. Nenhum ID ou registro precisa ser apagado ou substituído.
@@ -37,7 +51,7 @@ O Master concede admin/member. Outros usuários precisam de `members.manage`, s�
 
 Criação, aceite, recusa, revogação, regeneração e sync de membros usam `db.transaction`. Antes de consultar o estado definitivo, um `db.edit workspace` de updated_at adquire a trava da linha do workspace; todas as mutações seguem a mesma ordem. Após obter essa trava, os endpoints relêem convite/membership e validam pending, expiração, e-mail e hash corrente. Isso serializa a disputa por convite e impede create simultâneo equivalente, accept/decline/revoke concorrentes e aceite do token anterior após regeneração. O índice unique de membership é a garantia adicional contra duplicatas.
 
-O comportamento da trava decorre das transações PostgreSQL do Xano e deve ser confirmado no teste concorrente da instância. Não substituir por uma simples consulta prévia fora da transação. Como a documentação Xano diz que somente falhas de banco determinam rollback, todas as precondições ficam antes das alterações de negócio. Uma requisição rejeitada pode tocar somente updated_at do workspace usado como trava; membership, convite e audit são gravados juntos depois das validações.
+O comportamento da trava decorre das transações PostgreSQL do Xano e foi confirmado pelo teste concorrente desta instância; repetir a validação em futuras instalações. Não substituir por uma simples consulta prévia fora da transação. Como a documentação Xano diz que somente falhas de banco determinam rollback, todas as precondições ficam antes das alterações de negócio. Uma requisição rejeitada pode tocar somente updated_at do workspace usado como trava; membership, convite e audit são gravados juntos depois das validações.
 
 `sync/workspace_members` aceita criação somente do Master inicial, pelo próprio criador de um workspace ainda sem membros. Outros membros precisam aceitar convite. Atualizações preservam id/user_id/workspace_id; Master e proprietário não podem ser alterados/desativados (reenvio de bootstrap pelo próprio Master é no-op que preserva o registro existente); não-Master não altera admin, o próprio vínculo nem delega capacidades superiores. Auditoria usa perfil consultado no servidor, não payload arbitrário de membro.
 
@@ -45,11 +59,11 @@ Os 12 endpoints financeiros consultam o registro existente e validam workspace/o
 
 ## Tokens e logs
 
-`security.random_bytes {length=32}` gera 256 bits aleatórios. `bin2hex` produz token de URL com 64 caracteres; `sha256:true` calcula o único valor persistido em token_hash. Expiração padrão: now + 604800000 ms (7 dias). Regenerar troca hash e incrementa send_count. Audit registra invite_create, invite_accept, invite_decline, invite_revoke, invite_regenerate, member_permissions_update e member_disable com projeções seguras.
+`security.random_bytes {length=32}` gera 256 bits aleatórios. `bin2hex` produz token de URL com 64 caracteres; `sha256:false` (raw=false) calcula o único valor persistido em token_hash. Expiração padrão: `now|to_timestamp|add_secs_to_timestamp:604800` (7 dias). O literal now precisa ser convertido antes de aritmética; a soma direta foi rejeitada pela instância com Not numeric e corrigida após teste real. Regenerar troca hash e incrementa send_count. Audit registra invite_create, invite_accept, invite_decline, invite_revoke, invite_regenerate, member_permissions_update e member_disable com projeções seguras.
 
 **Request History desabilitado nos oito endpoints de convites por `history = false`**, sintaxe confirmada no editor da instância em 05/10/2026. Não executar debug.log, log de input/output ou captura completa de requisições nesses endpoints. A configuração está incluída no XanoScript e deve permanecer desabilitada ao publicar. Evitar logs do caminho /convite/TOKEN no hosting frontend. Não salvar token em outbox, IndexedDB, localStorage, audit ou analytics. Nenhum serviço de e-mail é usado.
 
-## Ordem de publicação e validação
+## Ordem de publicação e validação para futuras instalações
 
 1. Conferir schema/índices existentes sem recriação.
 2. Desabilitar logs dos endpoints de convites; importar e compilar seus oito blocos query.
@@ -59,7 +73,7 @@ Os 12 endpoints financeiros consultam o registro existente e validam workspace/o
 6. Conferir shared A→B e private A invisível para B tanto nas tabelas como em audit/trash; tentar update/delete de UUID existente de outro workspace e exigir rejeição sem alterações.
 7. Publicar frontend e rodar typecheck, testes, build e fluxo em dois navegadores. Testes mock do frontend não substituem execução Xano real.
 
-## Importação pelo painel
+## Importação pelo painel para futuras atualizações
 
 Os arquivos individuais para colar no editor foram preparados em `xano-import` nos artefatos locais da tarefa, com manifesto de endpoint, método, tamanho e SHA-256. O arquivo-fonte versionado continua sendo cada bundle em `xano/`.
 
@@ -76,3 +90,9 @@ O import multidoc documentado para workspace existente usa CLI/Metadata API e re
 - [Filtros de arrays e projeção pick](https://docs.xano.com/xanoscript/filter-reference/array)
 
 - [Multidoc: importação, identidade guid e autenticação](https://docs.xano.com/xanoscript/multidoc)
+
+- [Aritmética de timestamps documentada](https://docs.xano.com/xanoscript/filter-reference/timestamp)
+
+### Parâmetro SHA-256 da instância
+
+A página textual XanoScript descreve o argumento como hex_output, mas a [documentação visual oficial de filtros de segurança](https://docs.xano.com/the-function-stack/filters/security) mostra o campo **raw: boolean**, cujo valor false retorna texto hexadecimal. Usamos `sha256:false` em create, regenerate, resolve, accept e decline. A tentativa com true falhou no PostgreSQL com SQLSTATE 22021 (CHARACTER NOT IN REPERTOIRE), consistente com bytes binários em token_hash text. A versão com raw=false passou posteriormente no create/resolve/accept/regenerate real, confirmando a compatibilidade da instância. Não reintroduzir true com base no exemplo textual invertido; validar hashes por SHA-256 local do token durante o teste real, sem imprimir token/hash.

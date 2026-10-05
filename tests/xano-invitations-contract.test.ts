@@ -44,3 +44,16 @@ describe('contratos versionados Xano (inspeção estática, não execução do s
     }
   });
 });
+
+it('converte now em timestamp numérico antes de calcular expiração (regressão HTTP 500 Not numeric)', () => {
+  for (const source of [invites, sync]) expect(source).not.toMatch(/\bnow\s*[+-]\s*\d/);
+});
+
+it('usa SHA-256 textual nos cinco caminhos de token (regressão SQL 22021 por hash binário)', () => {
+  const digestPaths = queryBlocks(invites).filter(block => /query "workspace\/invites\/(create|resolve|accept|decline|regenerate)"/.test(block));
+  expect(digestPaths).toHaveLength(5);
+  for (const block of digestPaths) {
+    expect(block).not.toMatch(/\|sha256\s*:\s*true/);
+    expect(block).toMatch(/\|sha256\s*:\s*false/);
+  }
+});

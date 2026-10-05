@@ -163,10 +163,10 @@ query "workspace/invites/create" verb=POST {
           value = $random_bytes|bin2hex
         }
         var $token_hash {
-          value = $token|sha256:true
+          value = $token|sha256:false
         }
         var $expires_at {
-          value = now + 604800000
+          value = now|to_timestamp|add_secs_to_timestamp:604800
         }
         db.add "workspace_invites" {
           data = {id: $invite_id, created_at: now, updated_at: now, workspace_id: $input.workspace_id, email: $input.email, invited_by: $auth.id, role: $input.role, permissions: $input.permissions, status: "pending", token_hash: $token_hash, expires_at: $expires_at, accepted_at: null, accepted_user_id: null, declined_at: null, revoked_at: null, revoked_by: null, last_sent_at: now, send_count: 1}
@@ -249,7 +249,7 @@ query "workspace/invites/resolve" verb=POST {
 
   stack {
     var $token_hash {
-      value = $input.token|sha256:true
+      value = $input.token|sha256:false
     }
     db.get "workspace_invites" {
       field_name = "token_hash"
@@ -318,7 +318,7 @@ query "workspace/invites/accept" verb=POST {
       error = "Informe token ou invite_id, exclusivamente."
     }
     var $token_hash {
-      value = $input.token|sha256:true
+      value = $input.token|sha256:false
     }
     var $located {
       value = null
@@ -491,7 +491,7 @@ query "workspace/invites/decline" verb=POST {
       error = "Informe token ou invite_id, exclusivamente."
     }
     var $token_hash {
-      value = $input.token|sha256:true
+      value = $input.token|sha256:false
     }
     var $located {
       value = null
@@ -979,10 +979,10 @@ query "workspace/invites/regenerate" verb=POST {
           value = $random_bytes|bin2hex
         }
         var $token_hash {
-          value = $token|sha256:true
+          value = $token|sha256:false
         }
         var $expires_at {
-          value = now + 604800000
+          value = now|to_timestamp|add_secs_to_timestamp:604800
         }
         var $send_count {
           value = $invite.send_count + 1
