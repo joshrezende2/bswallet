@@ -48,6 +48,9 @@ const localAccountType = (type: unknown) => type === 'wallet' ? 'digital' : ['ch
 const remoteCategoryType = (type: unknown) => type === 'both' ? 'expense' : type;
 const remoteTransactionStatus = (status: unknown) => status === 'pending' ? 'forecast' : status;
 const localTransactionStatus = (status: unknown) => ['forecast', 'pending', 'confirmed', 'cancelled'].includes(String(status)) ? status : 'forecast';
+// Xano reads record fields directly: undefined keys disappear in JSON.stringify.
+// Normalize at send time so previously persisted outbox entries work unchanged.
+const nullable = <T>(value: T | null | undefined): T | null => value ?? null;
 
 function remoteFrequency(payload: Record<string, any>) {
   switch (payload.frequency) {
@@ -89,43 +92,45 @@ export function toSyncEnvelope(change: LocalChange, workspaceId: string, actor: 
       record = { id: change.entityId, workspace_id: workspaceId, user_id: p.userId, role: remoteRole(p.role), active: p.status !== 'disabled', scope: 'shared', owner_user_id: p.userId ?? actor.id };
       break;
     case 'people':
-      record = { ...record, name: p.name, linked_user_id: p.linkedUserId, monthly_spending_limit_enabled: p.monthlySpendingLimitEnabled, monthly_spending_limit: p.monthlySpendingLimit, allowed_category_ids: p.allowedCategoryIds, active: p.active };
+      record = { ...record, name: p.name, linked_user_id: nullable(p.linkedUserId), monthly_spending_limit_enabled: p.monthlySpendingLimitEnabled, monthly_spending_limit: p.monthlySpendingLimit, allowed_category_ids: nullable(p.allowedCategoryIds), active: p.active };
       break;
     case 'categories':
-      record = { ...record, name: p.name, icon: p.icon, type: remoteCategoryType(p.type), active: p.active };
+      record = { ...record, name: p.name, icon: nullable(p.icon), type: remoteCategoryType(p.type), active: p.active };
       break;
     case 'accounts':
-      record = { ...record, name: p.name, institution: p.institution, type: remoteAccountType(p.type), owner_person_id: p.ownerPersonId, active: p.active, notes: p.notes };
+      record = { ...record, name: p.name, institution: nullable(p.institution), type: remoteAccountType(p.type), owner_person_id: nullable(p.ownerPersonId), active: p.active, notes: nullable(p.notes) };
       break;
     case 'cards':
-      record = { ...record, name: p.name, bank: p.bank, brand: p.brand, last4_digits: p.last4Digits, total_limit: p.totalLimit, closing_day: p.closingDay, due_day: p.dueDay, owner_person_id: p.ownerPersonId, account_id: p.accountId, active: p.active, notes: p.notes };
+      record = { ...record, name: p.name, bank: nullable(p.bank), brand: nullable(p.brand), last4_digits: nullable(p.last4Digits), total_limit: p.totalLimit, closing_day: p.closingDay, due_day: p.dueDay, owner_person_id: nullable(p.ownerPersonId), account_id: nullable(p.accountId), active: p.active, notes: nullable(p.notes) };
       break;
     case 'recurrences':
-      record = { ...record, name: p.name, amount: p.amount, type: p.type, category_id: p.categoryId, person_id: p.personId, account_id: p.accountId, card_id: p.cardId, notes: p.notes, ...remoteFrequency(p), start_date: p.startDate, next_occurrence_date: p.nextOccurrenceDate, auto_confirm: p.autoConfirm, active: p.active };
+      record = { ...record, name: p.name, amount: p.amount, type: p.type, category_id: nullable(p.categoryId), person_id: nullable(p.personId), account_id: nullable(p.accountId), card_id: nullable(p.cardId), notes: nullable(p.notes), ...remoteFrequency(p), start_date: p.startDate, next_occurrence_date: p.nextOccurrenceDate, auto_confirm: p.autoConfirm, active: p.active };
       break;
     case 'invoices':
       record = { ...record, card_id: p.cardId, cycle_month: p.cycleMonth, closing_date: p.closingDate, due_date: p.dueDate, status: p.paidAt ? 'paid' : 'open' };
       break;
     case 'transactions':
-      record = { ...record, name: p.name, amount: p.amount, type: p.type, status: remoteTransactionStatus(p.status), transaction_date: p.transactionDate, competence_date: p.competenceDate, category_id: p.categoryId, person_id: p.personId, account_id: p.accountId, card_id: p.cardId, invoice_id: p.invoiceId, recurrence_id: p.recurrenceId, installment_group_id: p.installmentGroupId, notes: p.notes, payment_mode: p.paymentMode, occurrence_key: p.occurrenceKey, installment_number: p.installmentNumber, installment_total: p.installmentTotal };
+      record = { ...record, name: p.name, amount: p.amount, type: p.type, status: remoteTransactionStatus(p.status), transaction_date: p.transactionDate, competence_date: p.competenceDate, category_id: nullable(p.categoryId), person_id: nullable(p.personId), account_id: nullable(p.accountId), card_id: nullable(p.cardId), invoice_id: nullable(p.invoiceId), recurrence_id: nullable(p.recurrenceId), installment_group_id: nullable(p.installmentGroupId), notes: nullable(p.notes), payment_mode: p.paymentMode, occurrence_key: nullable(p.occurrenceKey), installment_number: nullable(p.installmentNumber), installment_total: nullable(p.installmentTotal) };
       break;
     case 'budgets':
-      record = { ...record, name: p.name, category_id: p.categoryId, person_id: p.personId, amount: p.limitAmount, reference_month: p.month, active: p.active };
+      record = { ...record, name: p.name, category_id: nullable(p.categoryId), person_id: nullable(p.personId), amount: p.limitAmount, reference_month: p.month, active: p.active };
       break;
     case 'transfers':
-      record = { ...record, from_account_id: p.fromAccountId, to_account_id: p.toAccountId, amount: p.amount, transfer_date: p.date, notes: p.notes };
+      record = { ...record, from_account_id: p.fromAccountId, to_account_id: p.toAccountId, amount: p.amount, transfer_date: p.date, notes: nullable(p.notes) };
       break;
     case 'installmentGroups':
       table = 'installment_groups';
-      record = { ...record, name: `Parcelamento ${String(p.id ?? change.entityId).slice(0, 8)}`, total_amount: p.originalAmount, installment_count: p.numberOfInstallments, start_date: p.purchaseDate, card_id: p.cardId, active: true };
+      // These four nullable columns exist in the endpoint but not in the current
+      // domain group. Keep any legacy values; do not invent domain relationships.
+      record = { ...record, name: `Parcelamento ${String(p.id ?? change.entityId).slice(0, 8)}`, total_amount: p.originalAmount, installment_count: p.numberOfInstallments, start_date: p.purchaseDate, category_id: nullable(p.categoryId), person_id: nullable(p.personId), account_id: nullable(p.accountId), card_id: nullable(p.cardId), notes: nullable(p.notes), active: true };
       break;
     case 'preferences':
       table = 'preferences';
-      record = { id: change.entityId, workspace_id: workspaceId, user_id: actor.id, notifications_enabled: p.notificationsEnabled, notice_types: p.noticeTypes, invoice_days: p.invoiceDays, recurrence_days: p.recurrenceDays, installment_days: p.installmentDays, income_days: p.incomeDays, attachment_max_mb: p.attachmentMaxMB, scope: 'shared', owner_user_id: actor.id };
+      record = { id: change.entityId, workspace_id: workspaceId, user_id: actor.id, notifications_enabled: p.notificationsEnabled, notice_types: nullable(p.noticeTypes), invoice_days: p.invoiceDays, recurrence_days: p.recurrenceDays, installment_days: p.installmentDays, income_days: p.incomeDays, attachment_max_mb: p.attachmentMaxMB, scope: 'shared', owner_user_id: actor.id };
       break;
     case 'attachments':
       table = 'attachments';
-      record = { id: change.entityId, workspace_id: p.workspaceId ?? workspaceId, owner_user_id: p.ownerUserId ?? actor.id, created_at: p.createdAt, created_by: p.createdBy ?? actor.id, entity_type: 'transactions', entity_id: p.transactionId, filename: p.fileName, mime_type: p.mimeType, size_bytes: p.size, active: change.action !== 'delete' && change.action !== 'purge', scope: remoteScope(p.scope) };
+      record = { id: change.entityId, workspace_id: p.workspaceId ?? workspaceId, owner_user_id: p.ownerUserId ?? actor.id, created_at: p.createdAt, created_by: p.createdBy ?? actor.id, entity_type: 'transactions', entity_id: p.transactionId, filename: p.fileName, mime_type: nullable(p.mimeType), size_bytes: nullable(p.size), active: change.action !== 'delete' && change.action !== 'purge', scope: remoteScope(p.scope) };
       break;
     default:
       throw new Error(`Entidade sem mapeamento Xano: ${change.entityType}.`);

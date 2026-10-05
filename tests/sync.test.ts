@@ -5,6 +5,7 @@ import { walletService } from '../src/data/wallet-service';
 import { hydrateUserFromXano, isSyncing, startAutoSync, syncWallet } from '../src/data/sync';
 import { xanoApi, XanoError } from '../src/data/xano/client';
 import type { Context, User } from '../src/domain/types';
+import { missingRecordFields } from './helpers/xano-contract';
 
 const control = vi.hoisted(() => ({ enabled: true, token: 'test-token' as string | null, revision: 1 }));
 vi.mock('../src/data/xano/config', () => ({ xanoConfig: { enabled: true }, xanoReady: () => control.enabled }));
@@ -40,6 +41,38 @@ beforeEach(async () => {
 afterEach(() => { cleanup?.(); cleanup = undefined; vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('sincronização automática offline-first', () => {
+  it('reenvia uma operação antiga após record.person_id sem perder o lançamento nem limpar IndexedDB', async () => {
+    const wallet = (await db.wallets.get(ctx.workspaceId))!;
+    const [tx] = await walletService.createTransaction(ctx, { name: 'Teste Sync', amount: 100, type: 'expense', status: 'confirmed', transactionDate: '2026-10-05', competenceDate: '2026-10-05', categoryId: wallet.categories.find(c => c.type !== 'income')!.id, paymentMode: 'single', scope: 'shared' });
+    const queued = (await db.wallets.get(ctx.workspaceId))!.outbox;
+    api.mockRejectedValueOnce(new XanoError(400, 'Unable to locate input: record.person_id'));
+    await expect(syncWallet(ctx)).rejects.toThrow('record.person_id');
+    const failed = (await db.wallets.get(ctx.workspaceId))!;
+    expect(failed.transactions).toEqual([tx]);
+    expect(failed.outbox).toEqual(queued);
+    // Emulate an older JSON export/reload: undefined properties are entirely absent.
+    failed.outbox = JSON.parse(JSON.stringify(failed.outbox));
+    await db.wallets.put(failed);
+    let remote: Record<string, unknown> | undefined;
+    api.mockImplementation(async (path, init) => {
+      if (init?.method === 'POST') {
+        const envelope = JSON.parse(init.body as string);
+        expect(path).toBe('/sync/transactions');
+        expect(missingRecordFields(envelope.table, envelope.record)).toEqual([]);
+        expect(envelope.record).toMatchObject({ id: tx.id, name: 'Teste Sync', amount: 100, category_id: tx.categoryId, person_id: null, account_id: null, card_id: null, notes: null });
+        remote = envelope;
+        return { ok: true };
+      }
+      const sent = remote as { record: unknown; payload: unknown };
+      return { workspace: { id: wallet.id, name: wallet.workspace.name, created_by: user.id }, transactions: [sent.record], audit_logs: [{ entity_type: 'transactions', entity_id: tx.id, timestamp: tx.createdAt, after_data: sent.payload }] };
+    });
+    expect((await syncWallet(ctx)).status).toBe('synced');
+    const saved = (await db.wallets.get(ctx.workspaceId))!;
+    expect(saved.outbox).toEqual([]);
+    expect(saved.transactions).toHaveLength(1);
+    expect(saved.transactions[0]).toMatchObject({ id: tx.id, name: 'Teste Sync', amount: 100, syncStatus: 'synced' });
+  });
+
   it('retorna o lançamento salvo antes da rede e envia o mesmo UUID após o commit local', async () => {
     const [tx] = await create();
     expect(api).not.toHaveBeenCalled();

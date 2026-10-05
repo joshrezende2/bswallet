@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { missingRecordFields } from '../helpers/xano-contract';
 
 // The actual production bundle runs against an isolated implementation of the
 // checked-in Xano contract. No fixture data or credentials reach the real server.
@@ -22,6 +23,8 @@ async function backend(page: Page) {
     if (control.fail) return reply({ message: 'Falha temporária simulada' }, 503);
     if (route.request().method() === 'POST') {
       const operation = route.request().postDataJSON();
+      const missing = missingRecordFields(operation.table, operation.record);
+      if (missing.length) return reply({ message: `Unable to locate input: record.${missing[0]}` }, 400);
       expect(JSON.stringify(operation)).not.toMatch(/somente-teste-1234|xano_password|admin_token|api_key/);
       operations.push(operation);
       if (control.hold) await control.hold;
@@ -93,6 +96,8 @@ test('salva sem aguardar rede, retoma offline e reconecta sessão expirada', asy
   release(); remote.control.hold = undefined;
   await expect(page.getByText('Alterações pendentes: 0')).toBeVisible();
   expect(remote.operations.some(operation => operation.entity_id === id)).toBe(true);
+  // The form supplies an empty notes string, which must be preserved verbatim.
+  expect(remote.operations.find(operation => operation.entity_id === id)?.record).toMatchObject({ person_id: null, account_id: null, card_id: null, notes: '' });
   await context.setOffline(true);
   await createTransaction(page, 'Compra offline');
   await expect(page.getByText('Modo offline', { exact: true }).last()).toBeVisible();

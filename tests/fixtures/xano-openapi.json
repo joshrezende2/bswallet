@@ -1,0 +1,4345 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "BS Wallet",
+    "description": "",
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "https://xano.ab1midia.com.br/api:A-AE1sTc"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {}
+  },
+  "paths": {
+    "/sync/accounts": {
+      "post": {
+        "operationId": "BS Wallet/sync/accounts|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/attachments": {
+      "post": {
+        "operationId": "BS Wallet/sync/attachments|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/bootstrap": {
+      "get": {
+        "operationId": "BS Wallet/sync/bootstrap|GET",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workspace": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": ""
+                        },
+                        "created_at": {
+                          "type": "number",
+                          "format": "timestamptz",
+                          "description": "",
+                          "default": "now"
+                        },
+                        "updated_at": {
+                          "type": "number",
+                          "format": "timestamptz",
+                          "description": "",
+                          "default": "now"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": ""
+                        },
+                        "created_by": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "",
+                          "nullable": true
+                        },
+                        "active": {
+                          "type": "boolean",
+                          "description": "",
+                          "default": "1"
+                        }
+                      }
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "role": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "admin_master",
+                              "admin",
+                              "member"
+                            ]
+                          },
+                          "active": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "permissions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": ""
+                            },
+                            "nullable": true
+                          },
+                          "joined_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "invited_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "people": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "linked_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "monthly_spending_limit_enabled": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "false"
+                          },
+                          "monthly_spending_limit": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "allowed_category_ids": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": ""
+                            },
+                            "nullable": true
+                          },
+                          "active": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "1"
+                          }
+                        }
+                      }
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "icon": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "income",
+                              "expense"
+                            ]
+                          },
+                          "active": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "1"
+                          }
+                        }
+                      }
+                    },
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "institution": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "checking",
+                              "savings",
+                              "cash",
+                              "investment",
+                              "wallet",
+                              "other"
+                            ]
+                          },
+                          "owner_person_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "active": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "notes": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "cards": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "bank": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "brand": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "last4_digits": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "total_limit": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "closing_day": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "due_day": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "owner_person_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "account_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "active": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "notes": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "recurrences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "income",
+                              "expense"
+                            ]
+                          },
+                          "category_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "person_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "account_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "card_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "notes": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "frequency": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "daily",
+                              "weekly",
+                              "monthly",
+                              "yearly",
+                              "custom"
+                            ]
+                          },
+                          "custom_interval_value": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "custom_interval_unit": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "day",
+                              "week",
+                              "month",
+                              "year"
+                            ]
+                          },
+                          "start_date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": ""
+                          },
+                          "next_occurrence_date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": ""
+                          },
+                          "auto_confirm": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "false"
+                          },
+                          "active": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "1"
+                          }
+                        }
+                      }
+                    },
+                    "invoices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "card_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "cycle_month": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "closing_date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": ""
+                          },
+                          "due_date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": ""
+                          },
+                          "status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "open",
+                              "closed",
+                              "paid",
+                              "overdue"
+                            ]
+                          },
+                          "total_amount": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "paid_amount": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "transactions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "income",
+                              "expense"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "forecast",
+                              "confirmed",
+                              "cancelled"
+                            ]
+                          },
+                          "transaction_date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": ""
+                          },
+                          "competence_date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": ""
+                          },
+                          "category_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "person_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "account_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "card_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "invoice_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "recurrence_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "installment_group_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "notes": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "payment_mode": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "single",
+                              "recurring",
+                              "installment"
+                            ]
+                          },
+                          "occurrence_key": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "installment_number": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "installment_total": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "budgets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "category_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "person_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "reference_month": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "active": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "1"
+                          }
+                        }
+                      }
+                    },
+                    "transfers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "from_account_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "to_account_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "transfer_date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": ""
+                          },
+                          "notes": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "expense_transaction_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "income_transaction_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "installment_groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "updated_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "updated_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "version": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "default": "1"
+                          },
+                          "sync_status": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "local",
+                              "synced",
+                              "pending",
+                              "conflict"
+                            ]
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "total_amount": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "installment_count": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": ""
+                          },
+                          "start_date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": ""
+                          },
+                          "category_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "person_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "account_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "card_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "notes": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "active": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "1"
+                          }
+                        }
+                      }
+                    },
+                    "preferences": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": ""
+                        },
+                        "workspace_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": ""
+                        },
+                        "user_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": ""
+                        },
+                        "created_at": {
+                          "type": "number",
+                          "format": "timestamptz",
+                          "description": "",
+                          "default": "now"
+                        },
+                        "updated_at": {
+                          "type": "number",
+                          "format": "timestamptz",
+                          "description": "",
+                          "default": "now"
+                        },
+                        "notifications_enabled": {
+                          "type": "boolean",
+                          "description": "",
+                          "default": "1"
+                        },
+                        "notice_types": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "nullable": true
+                        },
+                        "invoice_days": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "",
+                          "default": "3"
+                        },
+                        "recurrence_days": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "",
+                          "default": "1"
+                        },
+                        "installment_days": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "",
+                          "default": "3"
+                        },
+                        "income_days": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "",
+                          "default": "1"
+                        },
+                        "attachment_max_mb": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "",
+                          "default": "10"
+                        }
+                      }
+                    },
+                    "audit_logs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "entity_type": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "entity_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "action": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "actor_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "actor_name": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "timestamp": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": ""
+                          },
+                          "scope": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "shared",
+                              "private"
+                            ]
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "before_data": {
+                            "type": "object",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "after_data": {
+                            "type": "object",
+                            "description": "",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "trash": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "entity_type": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "entity_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "data": {
+                            "type": "object",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "deleted_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "deleted_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          }
+                        }
+                      }
+                    },
+                    "attachments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "workspace_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "owner_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "created_at": {
+                            "type": "number",
+                            "format": "timestamptz",
+                            "description": "",
+                            "default": "now"
+                          },
+                          "created_by": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "entity_type": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "entity_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": ""
+                          },
+                          "filename": {
+                            "type": "string",
+                            "description": ""
+                          },
+                          "mime_type": {
+                            "type": "string",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "size_bytes": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "file": {
+                            "type": "string",
+                            "format": "binary",
+                            "description": "",
+                            "nullable": true
+                          },
+                          "active": {
+                            "type": "boolean",
+                            "description": "",
+                            "default": "1"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/sync/budgets": {
+      "post": {
+        "operationId": "BS Wallet/sync/budgets|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/cards": {
+      "post": {
+        "operationId": "BS Wallet/sync/cards|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/categories": {
+      "post": {
+        "operationId": "BS Wallet/sync/categories|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/installment_groups": {
+      "post": {
+        "operationId": "BS Wallet/sync/installment_groups|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/invoices": {
+      "post": {
+        "operationId": "BS Wallet/sync/invoices|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/people": {
+      "post": {
+        "operationId": "BS Wallet/sync/people|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/preferences": {
+      "post": {
+        "operationId": "BS Wallet/sync/preferences|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/recurrences": {
+      "post": {
+        "operationId": "BS Wallet/sync/recurrences|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/transactions": {
+      "post": {
+        "operationId": "BS Wallet/sync/transactions|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/transfers": {
+      "post": {
+        "operationId": "BS Wallet/sync/transfers|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/workspace_members": {
+      "post": {
+        "operationId": "BS Wallet/sync/workspace_members|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/workspaces": {
+      "get": {
+        "operationId": "BS Wallet/sync/workspaces|GET",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": ""
+                      },
+                      "created_at": {
+                        "type": "number",
+                        "format": "timestamptz",
+                        "description": "",
+                        "default": "now"
+                      },
+                      "updated_at": {
+                        "type": "number",
+                        "format": "timestamptz",
+                        "description": "",
+                        "default": "now"
+                      },
+                      "workspace_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": ""
+                      },
+                      "user_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": ""
+                      },
+                      "role": {
+                        "type": "string",
+                        "description": "",
+                        "enum": [
+                          "admin_master",
+                          "admin",
+                          "member"
+                        ]
+                      },
+                      "active": {
+                        "type": "boolean",
+                        "description": "",
+                        "default": "1"
+                      },
+                      "permissions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "description": ""
+                        },
+                        "nullable": true
+                      },
+                      "joined_at": {
+                        "type": "number",
+                        "format": "timestamptz",
+                        "description": "",
+                        "nullable": true
+                      },
+                      "invited_by": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "",
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/sync/workspace": {
+      "post": {
+        "operationId": "BS Wallet/sync/workspace|POST",
+        "summary": "",
+        "description": "<br /><br />\n<b>Authentication:</b> required",
+        "tags": [
+          "sync"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "string"
+                    },
+                    "operation_id": {
+                      "type": "string"
+                    },
+                    "entity_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input Error. Check the request payload for issues."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Access denied. Additional privileges are needed access the requested resource."
+          },
+          "404": {
+            "description": "Not Found. The requested resource does not exist."
+          },
+          "429": {
+            "description": "Rate Limited. Too many requests."
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": ""
+                  },
+                  "version": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "",
+                    "default": "1"
+                  },
+                  "actor_name": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "record": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "description": "",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "entity_type",
+                  "action",
+                  "workspace_id",
+                  "entity_id",
+                  "record",
+                  "payload"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-bs-wallet-source": {
+    "url": "https://xano.ab1midia.com.br/apispec:A-AE1sTc?type=json",
+    "retrieved_on": "2026-10-05",
+    "note": "Public OpenAPI schema only; no authenticated requests or user data."
+  }
+}
