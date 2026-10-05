@@ -1,0 +1,15 @@
+.invite-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.invite-card { width: min(100%, 540px); }
+.invite-card h1 { font-size: 1.4rem; }
+.invite-card h2 { overflow-wrap: anywhere; }
+.invite-auth-note { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 12px 24px; }
+.invite-item { padding: 20px 0; border-bottom: 1px solid var(--border); }
+.invite-item p { overflow-wrap: anywhere; }
+.invite-link-result { margin: 20px 0; padding: 18px; border: 1px solid var(--border); border-radius: 12px; }
+.invite-link-result input { width: 100%; min-width: 0; }
+.invite-manager .detail-actions { flex-wrap: wrap; }
+.invite-manager > h3 { margin-top: 20px; margin-bottom: 10px; }
+.invite-manager > p { margin-bottom: 16px; }
+.invite-manager form { display: grid; gap: 16px; }
+.invite-link-result .field { margin: 12px 0; }
+.invite-item > h3, .invite-item > strong { display: block; margin-bottom: 6px; }

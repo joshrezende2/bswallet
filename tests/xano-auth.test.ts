@@ -183,12 +183,20 @@ describe('sessão Xano vinculada à conta local', () => {
 });
 
 
-it.each([401, 403])('invalida token com HTTP %s e usa mensagem de login normal', async status => {
+it('invalida token com HTTP 401 e usa mensagem de login normal', async () => {
   setXanoToken('token-a', false, 'user-a');
-  fetchMock.mockResolvedValue(new Response('{}', { status }));
+  fetchMock.mockResolvedValue(new Response('{}', { status: 401 }));
   await expect(xanoApi('/sync/workspaces')).rejects.toThrow();
   expect(getXanoToken()).toBeNull();
   expect(getXanoSessionError()).toBe('Sua sessão expirou. Entre novamente para continuar sincronizando.');
+});
+
+it('mantém sessão válida quando uma ação é recusada por falta de permissão', async () => {
+  setXanoToken('token-a', false, 'user-a');
+  fetchMock.mockResolvedValue(new Response(JSON.stringify({ message: 'Convite pertence a outro e-mail.' }), { status: 403 }));
+  await expect(xanoApi('/workspace/invites/accept', { method: 'POST', body: '{}' })).rejects.toThrow('outro e-mail');
+  expect(hasXanoSession('user-a')).toBe(true);
+  expect(getXanoSessionError()).toBe('');
 });
 
 it('login sem usuário na resposta consulta auth/me e persiste somente token individual', async () => {

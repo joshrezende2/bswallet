@@ -120,12 +120,14 @@ Validação local desta revisão:
 - O servidor simulado do E2E agora rejeita JSON sem qualquer chave acessada pelo XanoScript, reproduzindo o erro original em vez de aceitar qualquer payload.
 - Cobertura: transação mínima `Teste Sync`/100 centavos, relações preenchidas, parcelas, recorrências, orçamentos, transferências, metadados, serialização, defaults, campos exclusivos do payload, falha/reenvio de outbox antiga, offline, sessão expirada e tentativa manual. O teste de navegador também verifica ausência de erros de runtime.
 
-**Limite da evidência:** esses testes de gravação usam Xano simulado. A consulta ao OpenAPI real confirma nomes e nulabilidade, mas não executa XanoScript, não prova conversão de timestamps ISO pelo runtime e não prova que o script publicado seja idêntico ao versionado. A aba de produção inspecionada ainda exibia o erro original e 50 pendências; ela não havia recebido este build. Nenhum dado ou token dessa sessão foi extraído ou alterado.
+**Validação real posterior:** em 05/10/2026, os commits `6628e42` e `e18e089` foram publicados no Lovable. A sessão normal do BS Wallet sincronizou as operações financeiras antes bloqueadas. Dois eventos legados de resumo de importação (`backup/import`) foram preservados como auditoria local durável, sem serem enviados como entidades financeiras. Às 15:49:46 (Brasília), a interface confirmou **Sincronizado — Alterações pendentes: 0**. IndexedDB, dados financeiros e sessão foram preservados. Nenhum authToken foi extraído.
+
+Após a correção da auditoria local, typecheck, build, 154 testes unitários e os dois testes E2E passaram. Os testes E2E usam servidor simulado; a observação de produção confirma o escoamento real da fila existente, sem afirmar execução isolada de todos os cenários no backend real.
 
 ### Aplicação e condição para a Fase 2
 
-Esta correção não exige mudança manual de schema ou importação de XanoScript. É necessário disponibilizar o frontend corrigido, atualizar o app preservando IndexedDB e executar a sincronização com a sessão normal do BS Wallet. Confirmar o mesmo UUID da transação no Xano/bootstrap e a confirmação das pendências, além das entidades relacionadas, antes de iniciar convites.
+Esta correção não exigiu mudança de schema ou importação de XanoScript. O frontend corrigido foi publicado e validado com a sessão normal do BS Wallet, preservando o armazenamento local.
 
-A Fase 2 não foi implementada nesta revisão, pois a validação de gravação no backend real ainda está pendente. Nenhum schema, endpoint, serviço ou UI de convite foi alterado; testes de aceite e isolamento entre dois navegadores ainda não foram executados.
+A Fase 2 começou somente após essa confirmação real. Seu contrato, regras de autorização e instruções de implantação estão em [XANO-INVITES.md](XANO-INVITES.md). Os números de testes acima registram o marco da Fase 1; a Fase 2 amplia a suíte.
 
-Na retomada, reconciliar o schema existente antes de migrar. Além das regras de membership solicitadas, a revisão identificou que os endpoints financeiros consultam registro existente por ID sem comparar explicitamente seu workspace/proprietário com o ator e o workspace autorizado antes de editar/excluir. Corrigir essa autorização no backend antes de habilitar o fluxo multiusuário; validar apenas o `scope`/proprietário enviado pelo cliente não é suficiente.
+O schema existente foi reconciliado antes de migrar. A Fase 2 também corrige a autorização de endpoints financeiros, que consultavam registros por ID sem comparar seu workspace/proprietário real com o ator antes de editar/excluir. Esse endurecimento deve ser publicado antes de habilitar o fluxo multiusuário.

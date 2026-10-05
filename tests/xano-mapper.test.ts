@@ -46,6 +46,23 @@ function change(entityType: string, payload: Record<string, unknown>): LocalChan
 }
 
 describe('mapeamento Xano', () => {
+  it('permissões e identidade remotas prevalecem sobre auditoria antiga', () => {
+    const row = { id: base.id, user_id: user.id, role: 'member', active: true, permissions: ['shared.read', 'reports.read'] };
+    const stale = { ...fixtures.members, role: 'master_admin', status: 'disabled', permissions: ['members.manage'] };
+    const snapshot = snapshotToWalletState({ workspace: serialized('workspace').record, members: [row], audit_logs: [{ entity_type: 'members', entity_id: base.id, timestamp: base.createdAt, after_data: stale }] }, user);
+    expect(snapshot.members[0]).toMatchObject({ id: base.id, userId: user.id, role: 'member', status: 'active', permissions: ['shared.read', 'reports.read'] });
+  });
+
+  it.each([{ permissions: [] }, { permissions: ['unknown.permission'] }])('não substitui permissões remotas vazias por defaults: %j', ({ permissions }) => {
+    const snapshot = snapshotToWalletState({ workspace: serialized('workspace').record, members: [{ id: base.id, user_id: user.id, role: 'member', active: true, permissions }] }, user);
+    expect(snapshot.members[0].permissions).toEqual([]);
+  });
+
+  it('preserva fallback compatível de membros antigos sem permissions', () => {
+    const snapshot = snapshotToWalletState({ workspace: serialized('workspace').record, members: [{ id: base.id, user_id: user.id, role: 'member', active: true }] }, user);
+    expect(snapshot.members[0].permissions).toEqual(['shared.read', 'shared.create', 'transactions.editOwn', 'attachments.read', 'reports.read']);
+  });
+
   it('cobre exatamente todos os 14 endpoints de escrita', () => {
     expect(Object.keys(syncRecordFields)).toHaveLength(14);
     expect(Object.keys(fixtures).map(type => serialized(type).table).sort()).toEqual(Object.keys(syncRecordFields).sort());

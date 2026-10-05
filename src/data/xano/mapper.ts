@@ -89,7 +89,7 @@ export function toSyncEnvelope(change: LocalChange, workspaceId: string, actor: 
       break;
     case 'members':
       table = 'workspace_members';
-      record = { id: change.entityId, workspace_id: workspaceId, user_id: p.userId, role: remoteRole(p.role), active: p.status !== 'disabled', scope: 'shared', owner_user_id: p.userId ?? actor.id };
+      record = { id: change.entityId, workspace_id: workspaceId, user_id: p.userId, role: remoteRole(p.role), permissions: p.permissions ?? (p.role === 'master_admin' ? [...capabilities] : [...defaultPermissions]), active: p.status !== 'disabled', scope: 'shared', owner_user_id: p.userId ?? actor.id };
       break;
     case 'people':
       record = { ...record, name: p.name, linked_user_id: nullable(p.linkedUserId), monthly_spending_limit_enabled: p.monthlySpendingLimitEnabled, monthly_spending_limit: p.monthlySpendingLimit, allowed_category_ids: nullable(p.allowedCategoryIds), active: p.active };
@@ -181,10 +181,12 @@ export function snapshotToWalletState(snapshot: RemoteSnapshot, user: User): Wal
   const memberRows = list(snapshot.members);
   const members: Member[] = memberRows.map(row => {
     const payload = latestPayload(audits, 'members', row.id);
-    if (payload) return payload as Member;
     const role = localRole(row.role);
-    const permissions: Capability[] = role === 'master_admin' ? [...capabilities] : [...defaultPermissions];
-    return { id: row.id, userId: row.user_id, name: row.user_id === user.id ? user.name : 'Membro', email: row.user_id === user.id ? user.email : '', role, permissions, status: row.active === false ? 'disabled' : 'active' };
+    // Current membership columns are authoritative, even when audit payloads
+    // contain an older grant. Explicit [] means no capabilities, not defaults.
+    const source = Array.isArray(row.permissions) ? row.permissions : Array.isArray(payload?.permissions) ? payload.permissions : defaultPermissions;
+    const permissions: Capability[] = role === 'master_admin' ? [...capabilities] : source.filter((value: unknown): value is Capability => capabilities.includes(value as Capability));
+    return { id: row.id, userId: row.user_id, name: row.user_id === user.id ? user.name : payload?.name ?? row.name ?? 'Membro', email: row.user_id === user.id ? user.email : payload?.email ?? '', role, permissions, status: row.active === false ? 'disabled' : 'active' };
   });
   if (!members.some(member => member.userId === user.id)) members.push({ id: crypto.randomUUID(), userId: user.id, name: user.name, email: user.email, role: workspace.masterAdminUserId === user.id ? 'master_admin' : 'member', permissions: workspace.masterAdminUserId === user.id ? [...capabilities] : [...defaultPermissions], status: 'active' });
   const convert = (entityType: string, value: unknown) => list(value).map(row => canonicalEntity(entityType, row, audits)) as Entity[];

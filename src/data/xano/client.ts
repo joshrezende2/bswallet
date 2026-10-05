@@ -113,7 +113,9 @@ async function request<T>(baseUrl: string, path: string, init: RequestInit = {},
     }
     if (!response.ok) {
       const error = new XanoError(response.status, errorMessage(payload, `O servidor respondeu com HTTP ${response.status}.`), payload);
-      if ([401, 403].includes(response.status) && token && getXanoToken() === token) {
+      // A valid session can receive 403 for a forbidden invite or membership
+      // action. Only authentication failure expires the session.
+      if (response.status === 401 && token && getXanoToken() === token) {
         clearXanoToken(); reportXanoSessionError(new Error('Sua sessão expirou. Entre novamente para continuar sincronizando.'));
       }
       throw error;

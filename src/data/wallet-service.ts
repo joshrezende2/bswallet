@@ -10,10 +10,10 @@ import { entityKinds, type Attachment, type Base, type Context, type Entity, typ
 export function recordAudit(state: WalletState, ctx: Context, kind: string, action: string, after: { id: string; scope?: Scope; ownerUserId?: string; version?: number }, before?: unknown) {
   const timestamp = new Date().toISOString();
   state.audit.push({ id: crypto.randomUUID(), workspaceId: state.id, entityType: kind, entityId: after.id, action, actorUserId: ctx.user.id, actorName: ctx.user.name, timestamp, scope: after.scope ?? 'shared', ownerUserId: after.ownerUserId ?? ctx.user.id, beforeData: before, afterData: after });
+  return timestamp;
 }
 export function record(state: WalletState, ctx: Context, kind: string, action: string, after: { id: string; scope?: Scope; ownerUserId?: string; version?: number }, before?: unknown) {
-  recordAudit(state, ctx, kind, action, after, before);
-  const timestamp = new Date().toISOString();
+  const timestamp = recordAudit(state, ctx, kind, action, after, before);
   state.outbox.push({ id: crypto.randomUUID(), entityType: kind, entityId: after.id, action, version: after.version ?? 1, createdAt: timestamp, payload: after });
 }
 function touch<T extends Base>(entity: T, ctx: Context): T { return { ...entity, version: entity.version + 1, updatedAt: new Date().toISOString(), updatedBy: ctx.user.id, syncStatus: 'local' }; }
