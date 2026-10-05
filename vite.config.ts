@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // Hosted previews can retain dependencies from the original project template.
+  resolve: { dedupe: ['react', 'react-dom'] },
+  optimizeDeps: { force: true, include: ['react', 'react-dom/client', 'react/jsx-runtime'] },
   plugins: [react(), VitePWA({
     registerType: 'prompt',
     includeAssets: ['favicon.svg', 'icon-192.svg', 'icon-512.svg'],
