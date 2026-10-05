@@ -19,6 +19,26 @@ const online = () => typeof navigator === 'undefined' || navigator.onLine;
 const changeKey = (change: Pick<LocalChange, 'entityType' | 'entityId'>) => `${change.entityType}:${change.entityId}`;
 const now = () => new Date().toISOString();
 
+// In-memory activity is transient; persisted results remain in syncMeta.
+const active = new Map<string, Promise<Awaited<ReturnType<typeof performSync>>>>();
+const listeners = new Set<() => void>();
+export const subscribeSync = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
+export const isSyncing = (workspaceId: string) => active.has(workspaceId);
+const notifySync = () => listeners.forEach(listener => listener());
+
+export function scheduleWalletSync(ctx: Context) {
+  if (!xanoReady() || !getXanoToken() || !online()) return;
+  // Yield to the caller after the local transaction has committed.
+  setTimeout(() => { void syncWallet(ctx).catch(() => undefined); }, 0);
+}
+
+export function startAutoSync(user: User, target: EventTarget = window) {
+  const retry = () => { void syncAllForUser(user).catch(() => undefined); };
+  target.addEventListener('online', retry);
+  const timer = setInterval(retry, 60_000);
+  return () => { target.removeEventListener('online', retry); clearInterval(timer); };
+}
+
 function makeChange(entityType: string, entityId: string, payload: unknown, version = 1, action = 'create'): LocalChange {
   return { id: crypto.randomUUID(), entityType, entityId, action, version, createdAt: now(), payload };
 }
@@ -48,7 +68,7 @@ async function ensureBootstrapOutbox(ctx: Context) {
     }
     state.outbox = [...bootstrap, ...existing];
     await db.wallets.put(state);
-    await db.syncMeta.put({ id: state.id, bootstrapQueued: true, lastAttemptAt: now() });
+    await db.syncMeta.put({ ...meta, id: state.id, bootstrapQueued: true, lastAttemptAt: now() });
   });
 }
 
@@ -60,7 +80,8 @@ class XanoSyncAdapter implements SyncAdapter {
     for (const change of changes) {
       try {
         const envelope = toSyncEnvelope(change, this.ctx.workspaceId, this.ctx.user);
-        await xanoApi<{ ok: boolean; version?: number }>(`/sync/${envelope.table}`, { method: 'POST', body: JSON.stringify(envelope) });
+        const response = await xanoApi<{ ok: boolean; version?: number }>(`/sync/${envelope.table}`, { method: 'POST', body: JSON.stringify(envelope) });
+        if (!response?.ok) throw new Error('O Xano não confirmou a operação.');
         acknowledgedIds.push(change.id);
       } catch (error) {
         if (error instanceof XanoError && error.message.includes('SYNC_CONFLICT')) {
@@ -68,6 +89,8 @@ class XanoSyncAdapter implements SyncAdapter {
           conflicts.push({ entityId: change.entityId, localVersion: change.version, remoteVersion });
           continue;
         }
+        // Keep earlier acknowledgements even if a later request fails.
+        await applyPushResult(this.ctx, changes, { acknowledgedIds, conflicts });
         throw error;
       }
     }
@@ -98,7 +121,7 @@ async function applyPushResult(ctx: Context, sent: LocalChange[], result: SyncRe
     }
     await db.wallets.put(state);
     const previous = await db.syncMeta.get(ctx.workspaceId);
-    await db.syncMeta.put({ id: ctx.workspaceId, bootstrapQueued: previous?.bootstrapQueued ?? true, lastAttemptAt: now(), lastSuccessAt: result.conflicts.length ? previous?.lastSuccessAt : now(), lastError: result.conflicts.length ? 'Existem conflitos aguardando resolução.' : undefined });
+    await db.syncMeta.put({ ...previous, id: ctx.workspaceId, bootstrapQueued: previous?.bootstrapQueued ?? true, lastError: result.conflicts.length ? 'Existem conflitos aguardando resolução.' : undefined });
   });
 }
 
@@ -109,17 +132,18 @@ async function remoteSnapshot(workspaceId: string) {
 async function replaceFromRemote(ctx: Context) {
   const snapshot = await remoteSnapshot(ctx.workspaceId);
   const remote = snapshotToWalletState(snapshot, ctx.user);
+  if (remote.id !== ctx.workspaceId) throw new Error('Snapshot Xano pertence a outra família.');
   await db.transaction('rw', [db.wallets, db.syncMeta], async () => {
     const current = await db.wallets.get(ctx.workspaceId);
     if (!current || current.outbox.length) return;
     remote.notices = current.notices;
     await db.wallets.put(remote);
     const previous = await db.syncMeta.get(ctx.workspaceId);
-    await db.syncMeta.put({ id: ctx.workspaceId, bootstrapQueued: true, lastAttemptAt: now(), lastSuccessAt: now(), lastError: previous?.lastError && current.outbox.length ? previous.lastError : undefined });
+    await db.syncMeta.put({ ...previous, id: ctx.workspaceId, bootstrapQueued: true, lastSuccessAt: now(), lastError: undefined });
   });
 }
 
-export async function syncWallet(ctx: Context) {
+async function performSync(ctx: Context) {
   if (!xanoReady() || !getXanoToken()) return { status: 'local' as const };
   if (!online()) return { status: 'offline' as const };
   await ensureBootstrapOutbox(ctx);
@@ -127,15 +151,33 @@ export async function syncWallet(ctx: Context) {
   if (!state) throw new Error('Família não encontrada para sincronização.');
   const sent = state.outbox.slice();
   if (sent.length) {
-    const previous = await db.syncMeta.get(ctx.workspaceId);
-    await db.syncMeta.put({ id: ctx.workspaceId, bootstrapQueued: previous?.bootstrapQueued ?? true, lastAttemptAt: now(), lastSuccessAt: previous?.lastSuccessAt, lastError: previous?.lastError });
     const result = await new XanoSyncAdapter(ctx).push(sent);
     await applyPushResult(ctx, sent, result);
     if (result.conflicts.length) return { status: 'conflict' as const, conflicts: result.conflicts };
   }
   const after = await db.wallets.get(ctx.workspaceId);
   if (after && after.outbox.length === 0) await replaceFromRemote(ctx);
-  return { status: 'synced' as const };
+  const current = await db.wallets.get(ctx.workspaceId);
+  return { status: current?.outbox.length ? 'pending' as const : 'synced' as const };
+}
+
+export function syncWallet(ctx: Context) {
+  const existing = active.get(ctx.workspaceId);
+  if (existing) return existing;
+  const task = Promise.resolve().then(async () => {
+    if (!xanoReady() || !getXanoToken()) return { status: 'local' as const };
+    if (!online()) return { status: 'offline' as const };
+    const previous = await db.syncMeta.get(ctx.workspaceId);
+    await db.syncMeta.put({ ...previous, id: ctx.workspaceId, bootstrapQueued: previous?.bootstrapQueued ?? false, lastAttemptAt: now(), lastError: undefined });
+    try { return await performSync(ctx); }
+    catch (error) {
+      await db.syncMeta.update(ctx.workspaceId, { lastError: error instanceof Error ? error.message : 'Não foi possível sincronizar.' });
+      throw error;
+    }
+  }).finally(() => { active.delete(ctx.workspaceId); notifySync(); });
+  active.set(ctx.workspaceId, task);
+  notifySync();
+  return task;
 }
 
 export async function syncAllForUser(user: User) {

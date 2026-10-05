@@ -1,5 +1,6 @@
 import { db } from './db';
 import { auth } from './auth';
+import { scheduleWalletSync } from './sync';
 import { base } from './factory';
 import { addDays, addMonths, budgetUsage, invoiceCycle, nextOccurrence, recurrenceDates, splitInstallments, today } from '../domain/finance';
 import { canRead, hasCapability, memberOf, requireRead, requireWrite, validateMemberChange, defaultPermissions } from '../domain/permissions';
@@ -69,10 +70,14 @@ function assertScopeChange(state: WalletState, kind: Kind, before: Entity | unde
 }
 async function mutate<T>(ctx: Context, fn: (state: WalletState) => T | Promise<T>): Promise<T> {
   await auth.requireUser(ctx.user.id);
-  return db.transaction('rw', [db.wallets, db.attachments], async () => {
+  let changed = false;
+  const result = await db.transaction('rw', [db.wallets, db.attachments], async () => {
     const state = await db.wallets.get(ctx.workspaceId); if (!state) throw new Error('Família não encontrada.'); memberOf(state, ctx);
-    const result = await fn(state); await db.wallets.put(state); return result;
+    const pending = state.outbox.length;
+    const result = await fn(state); await db.wallets.put(state); changed = state.outbox.length > pending; return result;
   });
+  if (changed) scheduleWalletSync(ctx);
+  return result;
 }
 export function accessibleState(state: WalletState, ctx: Context): WalletState {
   memberOf(state, ctx);

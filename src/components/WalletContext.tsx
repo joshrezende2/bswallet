@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
+import { startAutoSync } from '../data/sync';
 import { accessibleState, walletService } from '../data/wallet-service';
 import { addMonths, today } from '../domain/finance';
 import { hasCapability } from '../domain/permissions';
@@ -9,6 +10,7 @@ interface Value { ctx: Context; state: WalletState; wallets: { id: string; name:
 const WalletContext = createContext<Value | null>(null);
 export const useWallet = () => { const value = useContext(WalletContext); if (!value) throw new Error('Família não carregada.'); return value; };
 export function WalletProvider({ user, children }: { user: User; children: ReactNode }) {
+  useEffect(() => startAutoSync(user), [user]);
   const [workspaceId, selectWorkspace] = useState(''), [month, setMonth] = useState(today().slice(0, 7)), [scope, setScope] = useState<Scope>('shared');
   const [message, toast] = useState(''), [error, setError] = useState('');
   const wallets = useLiveQuery(() => db.wallets.toArray().then(ws => ws.filter(w => w.members.some(m => m.userId === user.id && m.status === 'active'))), [user.id]);
