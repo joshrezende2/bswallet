@@ -17,7 +17,7 @@ query "auth/signup" verb=POST {
   }
 
   stack {
-    db.get user {
+    db.get "user" {
       field_name = "email"
       field_value = $input.email
     } as $existing
@@ -27,7 +27,7 @@ query "auth/signup" verb=POST {
       error = "This account is already in use."
     }
 
-    db.add user {
+    db.add "user" {
       enforce_hidden_fields = false
       data = {
         id         : $input.id
@@ -61,7 +61,7 @@ query "auth/login" verb=POST {
   }
 
   stack {
-    db.get user {
+    db.get "user" {
       field_name = "email"
       field_value = $input.email
       output = ["id", "created_at", "updated_at", "name", "email", "password", "active"]
@@ -100,7 +100,7 @@ query "auth/me" verb=GET {
   input {}
 
   stack {
-    db.get user {
+    db.get "user" {
       field_name = "id"
       field_value = $auth.id
       output = ["id", "created_at", "updated_at", "name", "email", "active"]
@@ -120,7 +120,7 @@ query "auth/change_password" verb=POST {
   }
 
   stack {
-    db.get user {
+    db.get "user" {
       field_name = "id"
       field_value = $auth.id
       output = ["id", "password"]
@@ -136,7 +136,7 @@ query "auth/change_password" verb=POST {
       error = "Invalid Credentials."
     }
 
-    db.edit user {
+    db.edit "user" {
       field_name = "id"
       field_value = $auth.id
       data = {
@@ -188,7 +188,7 @@ query "sync/bootstrap" verb=GET {
       error = "Você não pertence a este workspace."
     }
 
-    db.get workspace {
+    db.get "workspace" {
       field_name = "id"
       field_value = $input.workspace_id
     } as $workspace
@@ -301,7 +301,7 @@ query "sync/workspace" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get workspace {
+        db.get "workspace" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -316,7 +316,7 @@ query "sync/workspace" verb=POST {
               error_type = "accessdenied"
               error = "Workspace inválido."
             }
-            db.add workspace {
+            db.add "workspace" {
               data = {
                 id         : $input.record.id
                 created_at : now
@@ -332,7 +332,7 @@ query "sync/workspace" verb=POST {
               error_type = "accessdenied"
               error = "Somente o Administrador Master altera o workspace."
             }
-            db.edit workspace {
+            db.edit "workspace" {
               field_name = "id"
               field_value = $input.entity_id
               data = {
@@ -344,7 +344,7 @@ query "sync/workspace" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -391,11 +391,11 @@ query "sync/workspace_members" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get workspace {
+        db.get "workspace" {
       field_name = "id"
       field_value = $input.workspace_id
     } as $workspace
-        db.get workspace_members {
+        db.get "workspace_members" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -411,7 +411,7 @@ query "sync/workspace_members" verb=POST {
 
         conditional {
           if ($existing == null) {
-            db.add workspace_members {
+            db.add "workspace_members" {
               data = {
                 id           : $input.record.id
                 created_at   : now
@@ -424,7 +424,7 @@ query "sync/workspace_members" verb=POST {
             }
           }
           else {
-            db.edit workspace_members {
+            db.edit "workspace_members" {
               field_name = "id"
               field_value = $input.entity_id
               data = {
@@ -436,7 +436,7 @@ query "sync/workspace_members" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -500,7 +500,7 @@ query "sync/people" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get people {
+        db.get "people" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -521,7 +521,7 @@ query "sync/people" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -537,7 +537,7 @@ query "sync/people" verb=POST {
                   }
                 }
 
-                db.del people {
+                db.del "people" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -547,7 +547,7 @@ query "sync/people" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add people {
+                db.add "people" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -574,7 +574,7 @@ query "sync/people" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit people {
+                db.edit "people" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -600,7 +600,7 @@ query "sync/people" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -665,7 +665,7 @@ query "sync/categories" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get categories {
+        db.get "categories" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -686,7 +686,7 @@ query "sync/categories" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -702,7 +702,7 @@ query "sync/categories" verb=POST {
                   }
                 }
 
-                db.del categories {
+                db.del "categories" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -712,7 +712,7 @@ query "sync/categories" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add categories {
+                db.add "categories" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -737,7 +737,7 @@ query "sync/categories" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit categories {
+                db.edit "categories" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -761,7 +761,7 @@ query "sync/categories" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -826,7 +826,7 @@ query "sync/accounts" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get accounts {
+        db.get "accounts" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -847,7 +847,7 @@ query "sync/accounts" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -863,7 +863,7 @@ query "sync/accounts" verb=POST {
                   }
                 }
 
-                db.del accounts {
+                db.del "accounts" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -873,7 +873,7 @@ query "sync/accounts" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add accounts {
+                db.add "accounts" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -900,7 +900,7 @@ query "sync/accounts" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit accounts {
+                db.edit "accounts" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -926,7 +926,7 @@ query "sync/accounts" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -991,7 +991,7 @@ query "sync/cards" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get cards {
+        db.get "cards" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -1012,7 +1012,7 @@ query "sync/cards" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -1028,7 +1028,7 @@ query "sync/cards" verb=POST {
                   }
                 }
 
-                db.del cards {
+                db.del "cards" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -1038,7 +1038,7 @@ query "sync/cards" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add cards {
+                db.add "cards" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -1070,7 +1070,7 @@ query "sync/cards" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit cards {
+                db.edit "cards" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -1101,7 +1101,7 @@ query "sync/cards" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -1166,7 +1166,7 @@ query "sync/recurrences" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get recurrences {
+        db.get "recurrences" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -1187,7 +1187,7 @@ query "sync/recurrences" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -1203,7 +1203,7 @@ query "sync/recurrences" verb=POST {
                   }
                 }
 
-                db.del recurrences {
+                db.del "recurrences" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -1213,7 +1213,7 @@ query "sync/recurrences" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add recurrences {
+                db.add "recurrences" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -1249,7 +1249,7 @@ query "sync/recurrences" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit recurrences {
+                db.edit "recurrences" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -1284,7 +1284,7 @@ query "sync/recurrences" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -1349,7 +1349,7 @@ query "sync/invoices" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get invoices {
+        db.get "invoices" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -1370,7 +1370,7 @@ query "sync/invoices" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -1386,7 +1386,7 @@ query "sync/invoices" verb=POST {
                   }
                 }
 
-                db.del invoices {
+                db.del "invoices" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -1396,7 +1396,7 @@ query "sync/invoices" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add invoices {
+                db.add "invoices" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -1422,7 +1422,7 @@ query "sync/invoices" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit invoices {
+                db.edit "invoices" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -1447,7 +1447,7 @@ query "sync/invoices" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -1512,7 +1512,7 @@ query "sync/transactions" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get transactions {
+        db.get "transactions" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -1533,7 +1533,7 @@ query "sync/transactions" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -1549,7 +1549,7 @@ query "sync/transactions" verb=POST {
                   }
                 }
 
-                db.del transactions {
+                db.del "transactions" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -1559,7 +1559,7 @@ query "sync/transactions" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add transactions {
+                db.add "transactions" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -1598,7 +1598,7 @@ query "sync/transactions" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit transactions {
+                db.edit "transactions" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -1636,7 +1636,7 @@ query "sync/transactions" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -1701,7 +1701,7 @@ query "sync/budgets" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get budgets {
+        db.get "budgets" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -1722,7 +1722,7 @@ query "sync/budgets" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -1738,7 +1738,7 @@ query "sync/budgets" verb=POST {
                   }
                 }
 
-                db.del budgets {
+                db.del "budgets" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -1748,7 +1748,7 @@ query "sync/budgets" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add budgets {
+                db.add "budgets" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -1775,7 +1775,7 @@ query "sync/budgets" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit budgets {
+                db.edit "budgets" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -1801,7 +1801,7 @@ query "sync/budgets" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -1866,7 +1866,7 @@ query "sync/transfers" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get transfers {
+        db.get "transfers" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -1887,7 +1887,7 @@ query "sync/transfers" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -1903,7 +1903,7 @@ query "sync/transfers" verb=POST {
                   }
                 }
 
-                db.del transfers {
+                db.del "transfers" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -1913,7 +1913,7 @@ query "sync/transfers" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add transfers {
+                db.add "transfers" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -1939,7 +1939,7 @@ query "sync/transfers" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit transfers {
+                db.edit "transfers" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -1964,7 +1964,7 @@ query "sync/transfers" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -2029,7 +2029,7 @@ query "sync/installment_groups" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get installment_groups {
+        db.get "installment_groups" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -2050,7 +2050,7 @@ query "sync/installment_groups" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -2066,7 +2066,7 @@ query "sync/installment_groups" verb=POST {
                   }
                 }
 
-                db.del installment_groups {
+                db.del "installment_groups" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -2076,7 +2076,7 @@ query "sync/installment_groups" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add installment_groups {
+                db.add "installment_groups" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -2107,7 +2107,7 @@ query "sync/installment_groups" verb=POST {
                   error = "SYNC_CONFLICT"
                 }
 
-                db.edit installment_groups {
+                db.edit "installment_groups" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -2137,7 +2137,7 @@ query "sync/installment_groups" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -2202,7 +2202,7 @@ query "sync/preferences" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get preferences {
+        db.get "preferences" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -2218,7 +2218,7 @@ query "sync/preferences" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -2234,7 +2234,7 @@ query "sync/preferences" verb=POST {
                   }
                 }
 
-                db.del preferences {
+                db.del "preferences" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -2244,7 +2244,7 @@ query "sync/preferences" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add preferences {
+                db.add "preferences" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -2260,7 +2260,7 @@ query "sync/preferences" verb=POST {
                 }
               }
               else {
-                db.edit preferences {
+                db.edit "preferences" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -2280,7 +2280,7 @@ query "sync/preferences" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
@@ -2340,7 +2340,7 @@ query "sync/attachments" verb=POST {
 
     conditional {
       if ($already_processed == false) {
-        db.get attachments {
+        db.get "attachments" {
           field_name = "id"
           field_value = $input.entity_id
         } as $existing
@@ -2356,7 +2356,7 @@ query "sync/attachments" verb=POST {
 
                 conditional {
                   if ($trash_exists == false && $input.action == "delete") {
-                    db.add trash {
+                    db.add "trash" {
                       data = {
                         id            : $input.operation_id
                         workspace_id  : $input.workspace_id
@@ -2372,7 +2372,7 @@ query "sync/attachments" verb=POST {
                   }
                 }
 
-                db.del attachments {
+                db.del "attachments" {
                   field_name = "id"
                   field_value = $input.entity_id
                 }
@@ -2382,7 +2382,7 @@ query "sync/attachments" verb=POST {
           else {
             conditional {
               if ($existing == null) {
-                db.add attachments {
+                db.add "attachments" {
                   data = {
                     id: $input.record.id
                     workspace_id: $input.record.workspace_id
@@ -2399,7 +2399,7 @@ query "sync/attachments" verb=POST {
                 }
               }
               else {
-                db.edit attachments {
+                db.edit "attachments" {
                   field_name = "id"
                   field_value = $input.entity_id
                   data = {
@@ -2420,7 +2420,7 @@ query "sync/attachments" verb=POST {
           }
         }
 
-        db.add audit_logs {
+        db.add "audit_logs" {
           data = {
             id            : $input.operation_id
             workspace_id  : $input.workspace_id
