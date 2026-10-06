@@ -1,5 +1,6 @@
 import { capabilities, type Capability, type Entity, type LocalChange, type Member, type Preferences, type Scope, type User, type WalletState, type Workspace } from '../../domain/types';
 import { defaultPermissions } from '../../domain/permissions';
+import { categoryKey } from '../../domain/finance';
 
 export interface SyncEnvelope {
   operation_id: string;
@@ -95,13 +96,13 @@ export function toSyncEnvelope(change: LocalChange, workspaceId: string, actor: 
       record = { ...record, name: p.name, linked_user_id: nullable(p.linkedUserId), monthly_spending_limit_enabled: p.monthlySpendingLimitEnabled, monthly_spending_limit: p.monthlySpendingLimit, allowed_category_ids: nullable(p.allowedCategoryIds), active: p.active };
       break;
     case 'categories':
-      record = { ...record, name: p.name, icon: nullable(p.icon), type: remoteCategoryType(p.type), active: p.active };
+      record = { ...record, scope: 'shared', name: p.name, normalized_name: categoryKey(String(p.name ?? '')), icon: nullable(p.icon), type: remoteCategoryType(p.type), active: p.active };
       break;
     case 'accounts':
       record = { ...record, name: p.name, institution: nullable(p.institution), type: remoteAccountType(p.type), owner_person_id: nullable(p.ownerPersonId), active: p.active, notes: nullable(p.notes) };
       break;
     case 'cards':
-      record = { ...record, name: p.name, bank: nullable(p.bank), brand: nullable(p.brand), last4_digits: nullable(p.last4Digits), total_limit: p.totalLimit, closing_day: p.closingDay, due_day: p.dueDay, owner_person_id: nullable(p.ownerPersonId), account_id: nullable(p.accountId), active: p.active, notes: nullable(p.notes) };
+      record = { ...record, name: p.name, bank: nullable(p.bank), brand: nullable(p.brand), last4_digits: nullable(p.last4Digits), card_type: p.cardType ?? 'credit', total_limit: p.totalLimit, closing_day: p.closingDay, due_day: p.dueDay, owner_person_id: nullable(p.ownerPersonId), account_id: nullable(p.accountId), active: p.active, notes: nullable(p.notes) };
       break;
     case 'recurrences':
       record = { ...record, name: p.name, amount: p.amount, type: p.type, category_id: nullable(p.categoryId), person_id: nullable(p.personId), account_id: nullable(p.accountId), card_id: nullable(p.cardId), notes: nullable(p.notes), ...remoteFrequency(p), start_date: p.startDate, next_occurrence_date: p.nextOccurrenceDate, auto_confirm: p.autoConfirm, active: p.active };
@@ -116,7 +117,7 @@ export function toSyncEnvelope(change: LocalChange, workspaceId: string, actor: 
       record = { ...record, name: p.name, category_id: nullable(p.categoryId), person_id: nullable(p.personId), amount: p.limitAmount, reference_month: p.month, active: p.active };
       break;
     case 'transfers':
-      record = { ...record, from_account_id: p.fromAccountId, to_account_id: p.toAccountId, amount: p.amount, transfer_date: p.date, notes: nullable(p.notes) };
+      record = { ...record, from_account_id: p.fromAccountId, to_account_id: p.toAccountId, amount: p.amount, transfer_date: p.date, person_id: nullable(p.personId), notes: nullable(p.notes) };
       break;
     case 'installmentGroups':
       table = 'installment_groups';
@@ -157,12 +158,12 @@ function fallbackEntity(entityType: string, row: Record<string, any>): Record<st
     case 'people': return { ...base, name: row.name, linkedUserId: row.linked_user_id, monthlySpendingLimitEnabled: Boolean(row.monthly_spending_limit_enabled), monthlySpendingLimit: row.monthly_spending_limit ?? 0, allowedCategoryIds: row.allowed_category_ids ?? [], active: row.active !== false };
     case 'categories': return { ...base, name: row.name, icon: row.icon ?? '', type: row.type ?? 'expense', active: row.active !== false };
     case 'accounts': return { ...base, name: row.name, institution: row.institution ?? '', type: localAccountType(row.type), ownerPersonId: row.owner_person_id, active: row.active !== false, notes: row.notes };
-    case 'cards': return { ...base, name: row.name, bank: row.bank ?? '', brand: row.brand ?? '', last4Digits: row.last4_digits ?? '0000', totalLimit: row.total_limit ?? 0, closingDay: row.closing_day ?? 1, dueDay: row.due_day ?? 1, ownerPersonId: row.owner_person_id, accountId: row.account_id, active: row.active !== false, notes: row.notes };
+    case 'cards': return { ...base, name: row.name, bank: row.bank ?? '', brand: row.brand ?? '', last4Digits: row.last4_digits ?? '0000', cardType: row.card_type === 'debit' ? 'debit' : 'credit', totalLimit: row.total_limit ?? 0, closingDay: row.closing_day ?? 1, dueDay: row.due_day ?? 1, ownerPersonId: row.owner_person_id, accountId: row.account_id, active: row.active !== false, notes: row.notes };
     case 'recurrences': return { ...base, name: row.name, amount: row.amount, type: row.type, categoryId: row.category_id, personId: row.person_id, accountId: row.account_id, cardId: row.card_id, notes: row.notes, frequency: row.frequency === 'yearly' ? 'annual' : row.frequency === 'custom' ? 'custom' : row.frequency, customIntervalValue: row.custom_interval_value ?? 1, customIntervalUnit: row.custom_interval_unit ?? 'month', startDate: row.start_date, nextOccurrenceDate: row.next_occurrence_date, autoConfirm: Boolean(row.auto_confirm), active: row.active !== false };
     case 'invoices': return { ...base, cardId: row.card_id, cycleMonth: row.cycle_month, closingDate: row.closing_date, dueDate: row.due_date, paidAt: row.status === 'paid' ? row.updated_at ?? row.due_date : undefined };
     case 'transactions': return { ...base, name: row.name, amount: row.amount, type: row.type, status: localTransactionStatus(row.status), transactionDate: row.transaction_date, competenceDate: row.competence_date, categoryId: row.category_id, personId: row.person_id, accountId: row.account_id, cardId: row.card_id, invoiceId: row.invoice_id, recurrenceId: row.recurrence_id, installmentGroupId: row.installment_group_id, notes: row.notes, paymentMode: row.payment_mode, occurrenceKey: row.occurrence_key, installmentNumber: row.installment_number, installmentTotal: row.installment_total };
     case 'budgets': return { ...base, name: row.name, categoryId: row.category_id, personId: row.person_id, limitAmount: row.amount, month: row.reference_month, thresholds: [80, 90, 100], active: row.active !== false };
-    case 'transfers': return { ...base, name: 'Transferência', fromAccountId: row.from_account_id, toAccountId: row.to_account_id, amount: row.amount, date: row.transfer_date, notes: row.notes };
+    case 'transfers': return { ...base, name: 'Transferência', fromAccountId: row.from_account_id, toAccountId: row.to_account_id, amount: row.amount, date: row.transfer_date, personId: row.person_id, notes: row.notes };
     case 'installmentGroups': return { ...base, originalAmount: row.total_amount, numberOfInstallments: row.installment_count, cardId: row.card_id, purchaseDate: row.start_date, firstInvoiceId: '' };
     default: return base;
   }
@@ -170,7 +171,10 @@ function fallbackEntity(entityType: string, row: Record<string, any>): Record<st
 
 function canonicalEntity(entityType: string, row: Record<string, any>, audits: Record<string, any>[]) {
   const payload = latestPayload(audits, entityType, row.id);
-  return payload ? synced(payload) : fallbackEntity(entityType, row);
+  const entity = payload ? synced(payload) : fallbackEntity(entityType, row);
+  if (entityType === 'cards') return { ...entity, cardType: entity.cardType ?? (row.card_type === 'debit' ? 'debit' : 'credit') };
+  if (entityType === 'categories') return { ...entity, scope: 'shared' };
+  return entity;
 }
 
 export function snapshotToWalletState(snapshot: RemoteSnapshot, user: User): WalletState {

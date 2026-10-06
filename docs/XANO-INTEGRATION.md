@@ -12,6 +12,19 @@ Arquivos principais:
 - `src/data/xano/mapper.ts`: conversão entre o domínio TypeScript e as tabelas Xano;
 - `xano/bs_wallet_endpoints.xs`: endpoints que devem ser aplicados no Xano.
 
+## Migração necessária para cartões, categorias e pessoas
+
+Antes de publicar esta revisão do frontend:
+
+1. Na tabela `cards`, criar `card_type` como enum/texto obrigatório, aceitando `credit` e `debit`, com padrão `credit`. Atualizar os registros existentes para `credit`.
+2. Na tabela `categories`, criar `normalized_name` como texto obrigatório. Preencher os registros atuais com o nome sem acentos, em minúsculas, sem espaços nas extremidades e com espaços internos convertidos em `_` (ex.: `Educação Infantil` → `educacao_infantil`), alterar todos os `scope` para `shared` e criar um índice único composto por `workspace_id + normalized_name`.
+3. Na tabela `transfers`, criar `person_id` como UUID/texto anulável e preencher a partir do payload de auditoria quando houver vínculo legado.
+4. Publicar a versão atualizada de `sync/cards`, `sync/categories`, `sync/transfers` e `sync/people` de `xano/bs_wallet_endpoints.xs`.
+5. No bloco de exclusão de `sync/people`, antes de `db.del`, bloquear com HTTP 409 quando existir `linked_user_id` na própria pessoa ou referência ao `person_id`/`owner_person_id` nas tabelas `transactions`, `cards`, `accounts`, `recurrences`, `budgets`, `transfers` ou `installment_groups`. `allowed_category_ids` não deve bloquear a exclusão.
+6. Fazer o `/sync/bootstrap` devolver `card_type`, `normalized_name` e `transfers.person_id`. Depois, atualizar `tests/fixtures/xano-openapi.json` a partir do OpenAPI publicado e rodar os testes novamente.
+
+O frontend já trata cartões antigos sem `card_type` como crédito, mas o campo no Xano é necessário para persistência direta e para o contrato publicado ficar completo.
+
 ## Ordem para ativar
 
 1. Aplicar/atualizar os endpoints do arquivo `xano/bs_wallet_endpoints.xs` nos grupos `Authentication` e `BS Wallet`.
@@ -66,7 +79,7 @@ O schema publicado foi consultado sem credenciais em [OpenAPI BS Wallet](https:/
 | recurrences | category_id, person_id, account_id, card_id, notes |
 | transactions | category_id, person_id, account_id, card_id, invoice_id, recurrence_id, installment_group_id, notes, occurrence_key, installment_number, installment_total |
 | budgets | category_id, person_id |
-| transfers | notes |
+| transfers | person_id, notes |
 | installment_groups | category_id, person_id, account_id, card_id, notes |
 | preferences | notice_types |
 | attachments | mime_type, size_bytes |
@@ -86,14 +99,14 @@ Campos comuns para people, categories, accounts, cards, recurrences, invoices, t
 | Endpoint sync | Campos adicionais aos comuns |
 | --- | --- |
 | people | name, linked_user_id, monthly_spending_limit_enabled, monthly_spending_limit, allowed_category_ids, active |
-| categories | name, icon, type, active |
+| categories | name, normalized_name, icon, type, active |
 | accounts | name, institution, type, owner_person_id, active, notes |
-| cards | name, bank, brand, last4_digits, total_limit, closing_day, due_day, owner_person_id, account_id, active, notes |
+| cards | name, bank, brand, last4_digits, card_type, total_limit, closing_day, due_day, owner_person_id, account_id, active, notes |
 | recurrences | name, amount, type, category_id, person_id, account_id, card_id, notes, frequency, custom_interval_value, custom_interval_unit, start_date, next_occurrence_date, auto_confirm, active |
 | invoices | card_id, cycle_month, closing_date, due_date, status |
 | transactions | name, amount, type, status, transaction_date, competence_date, category_id, person_id, account_id, card_id, invoice_id, recurrence_id, installment_group_id, notes, payment_mode, occurrence_key, installment_number, installment_total |
 | budgets | name, category_id, person_id, amount, reference_month, active |
-| transfers | from_account_id, to_account_id, amount, transfer_date, notes |
+| transfers | from_account_id, to_account_id, amount, transfer_date, person_id, notes |
 | installment_groups | name, total_amount, installment_count, start_date, category_id, person_id, account_id, card_id, notes, active |
 
 Contratos completos das demais entidades:

@@ -3,6 +3,7 @@ import { auth } from '../src/data/auth';
 import { db } from '../src/data/db';
 import { walletService } from '../src/data/wallet-service';
 import type { Context, User } from '../src/domain/types';
+import { accountBalance } from '../src/domain/finance';
 
 let user: User;
 let ctx: Context;
@@ -85,5 +86,39 @@ describe('persistência e fluxos críticos', () => {
     const restored = await db.wallets.get(ctx.workspaceId);
     expect(restored!.transactions).toHaveLength(1);
     expect(restored!.audit.map(entry => entry.action)).toContain('restore');
+  });
+
+  it('impede categorias duplicadas sem diferenciar acentos ou maiúsculas', async () => {
+    await walletService.save(ctx, 'categories', { name: 'Educação', icon: 'file', type: 'expense', scope: 'personal', active: true });
+    await expect(walletService.save(ctx, 'categories', { name: ' educacao ', icon: 'file', type: 'expense', scope: 'shared', active: true })).rejects.toThrow('Já existe uma categoria');
+    const saved = await db.wallets.get(ctx.workspaceId);
+    expect(saved!.categories.find(category => category.name === 'Educação')?.scope).toBe('shared');
+  });
+
+  it('exclui uma pessoa sem vínculos e bloqueia quando existe outra configuração associada', async () => {
+    const state = await db.wallets.get(ctx.workspaceId);
+    const categoryId = state!.categories[0].id;
+    const free = await walletService.save(ctx, 'people', { name: 'Sem vínculos', scope: 'shared', monthlySpendingLimitEnabled: false, monthlySpendingLimit: 0, allowedCategoryIds: [categoryId], active: true });
+    await walletService.remove(ctx, 'people', free.id);
+    expect((await db.wallets.get(ctx.workspaceId))!.people.some(person => person.id === free.id)).toBe(false);
+
+    const linked = await walletService.save(ctx, 'people', { name: 'Com conta', scope: 'shared', monthlySpendingLimitEnabled: false, monthlySpendingLimit: 0, allowedCategoryIds: [], active: true });
+    await walletService.save(ctx, 'accounts', { name: 'Conta da pessoa', institution: '', type: 'checking', scope: 'shared', ownerPersonId: linked.id, active: true });
+    await expect(walletService.remove(ctx, 'people', linked.id)).rejects.toThrow('contas');
+  });
+
+  it('exige conta no cartão de débito e desconta compras confirmadas do saldo sem criar fatura', async () => {
+    const state = await db.wallets.get(ctx.workspaceId);
+    const personId = state!.people[0].id;
+    const categoryId = state!.categories.find(category => category.name === 'Mercado')!.id;
+    const account = await walletService.save(ctx, 'accounts', { name: 'Conta corrente', institution: 'Banco', type: 'checking', scope: 'shared', active: true });
+    await expect(walletService.save(ctx, 'cards', { name: 'Débito inválido', bank: 'Banco', brand: 'Visa', last4Digits: '1111', cardType: 'debit', totalLimit: 0, closingDay: 0, dueDay: 0, scope: 'shared', ownerPersonId: personId, active: true })).rejects.toThrow('Associe');
+    const card = await walletService.save(ctx, 'cards', { name: 'Débito', bank: 'Banco', brand: 'Visa', last4Digits: '2222', cardType: 'debit', totalLimit: 0, closingDay: 0, dueDay: 0, scope: 'shared', ownerPersonId: personId, accountId: account.id, active: true });
+    await walletService.createTransaction(ctx, { name: 'Entrada', amount: 10000, type: 'income', status: 'confirmed', transactionDate: '2026-01-05', competenceDate: '2026-01-05', categoryId: state!.categories.find(category => category.name === 'Salário')!.id, accountId: account.id, paymentMode: 'single', scope: 'shared' });
+    const [purchase] = await walletService.createTransaction(ctx, { name: 'Mercado no débito', amount: 2500, type: 'expense', status: 'confirmed', transactionDate: '2026-01-06', competenceDate: '2026-01-06', categoryId, cardId: card.id, paymentMode: 'single', scope: 'shared' });
+    const saved = await db.wallets.get(ctx.workspaceId);
+    expect(purchase).toMatchObject({ accountId: account.id, invoiceId: undefined });
+    expect(saved!.invoices).toHaveLength(0);
+    expect(accountBalance(account.id, saved!.transactions, saved!.transfers, saved!.cards)).toBe(7500);
   });
 });

@@ -718,6 +718,10 @@
                             "type": "boolean",
                             "description": "",
                             "default": "1"
+                          },
+                          "normalized_name": {
+                            "type": "string",
+                            "description": ""
                           }
                         }
                       }
@@ -915,6 +919,16 @@
                           "last4_digits": {
                             "type": "string",
                             "description": "",
+                            "nullable": true
+                          },
+                          "card_type": {
+                            "type": "string",
+                            "description": "",
+                            "enum": [
+                              "credit",
+                              "debit"
+                            ],
+                            "default": "credit",
                             "nullable": true
                           },
                           "total_limit": {
@@ -1601,6 +1615,12 @@
                             "type": "string",
                             "format": "date",
                             "description": ""
+                          },
+                          "person_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "",
+                            "nullable": true
                           },
                           "notes": {
                             "type": "string",
@@ -4339,7 +4359,7 @@
   },
   "x-bs-wallet-source": {
     "url": "https://xano.ab1midia.com.br/apispec:A-AE1sTc?type=json",
-    "retrieved_on": "2026-10-05",
-    "note": "Public OpenAPI schema only; no authenticated requests or user data."
+    "retrieved_on": "2026-10-06",
+    "note": "Schema reconciled with the exported Xano workspace supplied by the user; no credentials included."
   }
 }

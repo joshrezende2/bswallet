@@ -18,6 +18,10 @@ export class WalletDatabase extends Dexie {
     super(name);
     this.version(1).stores({ users: 'id, &email, &username', credentials: 'userId', sessions: 'id, userId', wallets: 'id', attachments: 'id, workspaceId, transactionId', safetyBackups: 'id, userId' });
     this.version(2).stores({ users: 'id, &email, &username', credentials: 'userId', sessions: 'id, userId', wallets: 'id', attachments: 'id, workspaceId, transactionId', safetyBackups: 'id, userId', syncMeta: 'id, lastSuccessAt' });
+    this.version(3).stores({ users: 'id, &email, &username', credentials: 'userId', sessions: 'id, userId', wallets: 'id', attachments: 'id, workspaceId, transactionId', safetyBackups: 'id, userId', syncMeta: 'id, lastSuccessAt' }).upgrade(transaction => transaction.table<WalletState>('wallets').toCollection().modify(state => {
+      state.categories = state.categories.map(category => ({ ...category, scope: 'shared' }));
+      state.cards = state.cards.map(card => ({ ...card, cardType: card.cardType ?? 'credit' }));
+    }));
   }
 }
 

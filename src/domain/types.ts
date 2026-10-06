@@ -22,7 +22,7 @@ export interface Transaction extends Base {
   recurrenceId?: string; occurrenceKey?: string;
 }
 export interface Account extends Base { name: string; institution: string; type: 'checking' | 'savings' | 'digital' | 'cash' | 'other'; ownerPersonId?: string; active: boolean; notes?: string; }
-export interface Card extends Base { name: string; bank: string; brand: string; last4Digits: string; totalLimit: number; closingDay: number; dueDay: number; ownerPersonId: string; accountId?: string; additionalOfCardId?: string; active: boolean; notes?: string; }
+export interface Card extends Base { name: string; bank: string; brand: string; last4Digits: string; cardType: 'credit' | 'debit'; totalLimit: number; closingDay: number; dueDay: number; ownerPersonId: string; accountId?: string; additionalOfCardId?: string; active: boolean; notes?: string; }
 export interface Category extends Base { name: string; icon: string; type: 'expense' | 'income' | 'both'; active: boolean; }
 export interface Person extends Base { name: string; linkedUserId?: string; monthlySpendingLimitEnabled: boolean; monthlySpendingLimit: number; allowedCategoryIds: string[]; active: boolean; }
 export interface Recurrence extends Base {

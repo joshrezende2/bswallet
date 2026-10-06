@@ -7,6 +7,7 @@ import { record, recordAudit, validateRelations } from './wallet-service';
 import { memberOf, requireWrite } from '../domain/permissions';
 import { schemas, validateEntity } from '../domain/validation';
 import { entityKinds, type Attachment, type Context, type Entity, type Kind, type Scope, type WalletState } from '../domain/types';
+import { categoryKey } from '../domain/finance';
 const metadata = z.object({ id: z.string().min(1).max(200), workspaceId: z.string().min(1), ownerUserId: z.string().min(1), scope: z.enum(['personal', 'shared']), createdAt: z.string().datetime(), createdBy: z.string(), updatedAt: z.string().datetime(), updatedBy: z.string(), version: z.number().int().positive(), syncStatus: z.enum(['local', 'pending', 'synced', 'conflict']) });
 const invoice = metadata.extend({ cardId: z.string(), cycleMonth: z.string().regex(/^\d{4}-\d{2}$/), closingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), paidAt: z.string().datetime().optional() });
 const group = metadata.extend({ originalAmount: z.number().int().positive(), numberOfInstallments: z.number().int().min(2).max(360), cardId: z.string(), purchaseDate: z.string(), firstInvoiceId: z.string() });
@@ -71,7 +72,10 @@ export async function importBackup(ctx: Context, input: unknown) {
     await db.safetyBackups.add({ id: crypto.randomUUID(), userId: ctx.user.id, createdAt: new Date().toISOString(), state: before, attachments: priorAttachments });
     const imported: { kind: Kind; item: Entity }[] = [];
     for (const kind of entityKinds) for (const incoming of backup.data[kind] as Entity[]) {
-      const item = { ...(remap(incoming) as Entity), ...base(state.id, ctx.user.id, incoming.scope), id: ids.get(incoming.id)! } as Entity;
+      const targetScope = kind === 'categories' ? 'shared' : incoming.scope;
+      const item = { ...(remap(incoming) as Entity), ...base(state.id, ctx.user.id, targetScope), id: ids.get(incoming.id)! } as Entity;
+      if (kind === 'cards' && !('cardType' in item)) Object.assign(item, { cardType: 'credit' });
+      if (kind === 'categories' && state.categories.some(category => categoryKey(category.name) === categoryKey((item as WalletState['categories'][number]).name))) throw new Error(`A categoria ${(item as WalletState['categories'][number]).name} já existe.`);
       if ('linkedUserId' in item) item.linkedUserId = undefined;
       requireWrite(state, ctx, item, kind === 'budgets' ? 'budgets.manage' : kind === 'transactions' || kind === 'transfers' ? 'transactions.editOwn' : 'catalog.manage', true);
       (state[kind] as Entity[]).push(item); imported.push({ kind, item });

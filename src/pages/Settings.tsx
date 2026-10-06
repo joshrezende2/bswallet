@@ -5,12 +5,12 @@ import { Link, useParams } from 'react-router-dom';
 import { Bell, Building2, ChevronRight, Download, FileDown, FolderArchive, History, KeyRound, Layers, LogOut, Moon, Pencil, Plus, RotateCcw, Settings2, ShieldCheck, Sun, Tag, Trash2, Upload, Users, Wallet } from 'lucide-react';
 import { db } from '../data/db';
 import { auth } from '../data/auth';
-import { walletService } from '../data/wallet-service';
+import { personDependencies, walletService } from '../data/wallet-service';
 import { useWallet } from '../components/WalletContext';
 import { BudgetBars } from './Dashboard';
 import { CatalogEditor } from '../components/Editors';
 import { Button, CategoryIcon, Empty, ErrorText, Field, Modal } from '../components/ui';
-import { dateBR, financialDate, money, monthLabel, today } from '../domain/finance';
+import { accountBalance, dateBR, financialDate, money, monthLabel, today } from '../domain/finance';
 import { capabilities, type Entity, type Kind, type Member, type Scope, type WalletState } from '../domain/types';
 import { hasCapability, memberOf } from '../domain/permissions';
 import type { Backup } from '../data/backup';
@@ -40,16 +40,14 @@ export function Settings({ theme, toggleTheme, onLogout }: { theme: string; togg
 }
 function CatalogPage({ kind }: { kind: 'accounts' | 'people' | 'categories' | 'budgets' }) {
   const { state, ctx, month, scope, run } = useWallet(); const [editor, setEditor] = useState<Entity | 'new' | null>(null);
-  const items = state[kind].filter(e => e.scope === scope && (kind !== 'budgets' || (e as WalletState['budgets'][number]).month === month));
+  const items = state[kind].filter(e => (kind === 'categories' || e.scope === scope) && (kind !== 'budgets' || (e as WalletState['budgets'][number]).month === month));
   const labels = { accounts: 'conta', people: 'pessoa', categories: 'categoria', budgets: 'orçamento' };
-  function balance(accountId: string) {
-    const posted = state.transactions.filter(t => t.accountId === accountId && t.status === 'confirmed' && !t.cardId);
-    return posted.reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0) + state.transfers.reduce((sum, t) => sum + (t.toAccountId === accountId ? t.amount : 0) - (t.fromAccountId === accountId ? t.amount : 0), 0);
-  }
+  function balance(accountId: string) { return accountBalance(accountId, state.transactions, state.transfers, state.cards); }
   return <section className="panel"><div className="panel-heading"><h3>{items.length} {items.length === 1 ? 'cadastro' : 'cadastros'}</h3><Button onClick={() => setEditor('new')}><Plus size={16} />Adicionar {labels[kind]}</Button></div>{kind === 'budgets' && items.length > 0 && <BudgetBars budgets={state.budgets.filter(b => items.some(i => i.id === b.id))} transactions={state.transactions.filter(t => t.scope === scope)} />}{items.length ? <div className="catalog-list">{items.map(item => {
     const person = kind === 'people' ? state.people.find(p => p.id === item.id) : undefined;
+    const dependencies = person ? personDependencies(state, person.id) : [];
     const spending = person ? state.transactions.filter(t => t.personId === person.id && t.status === 'confirmed' && t.type === 'expense' && financialDate(t).startsWith(month)).reduce((sum, t) => sum + t.amount, 0) : 0;
-    return <div key={item.id} className="catalog-row"><span className="category-icon"><CategoryIcon name={'icon' in item ? item.icon : kind === 'people' ? 'heart' : 'wallet'} /></span><div><strong>{item.name}</strong><small>{!item.active ? 'Inativo · histórico preservado' : kind === 'accounts' ? `Saldo registrado no BS Wallet: ${money(balance(item.id))}` : person ? `${money(spending)} no mês${person.monthlySpendingLimitEnabled ? ` / ${money(person.monthlySpendingLimit)} de limite` : ''}` : item.scope === 'personal' ? 'Carteira pessoal' : 'Carteira compartilhada'}</small>{person?.monthlySpendingLimitEnabled && spending > person.monthlySpendingLimit && <small className="expense-text">Limite mensal ultrapassado</small>}</div><button className="icon-button" onClick={() => setEditor(item)} aria-label={`Editar ${item.name}`}><Pencil size={17} /></button>{kind === 'budgets' && <button className="icon-button" aria-label={`Excluir ${item.name}`} onClick={() => { if (window.confirm('Mover este orçamento para a lixeira?')) void run(() => walletService.remove(ctx, kind, item.id), 'Orçamento na lixeira.'); }}><Trash2 size={17} /></button>}</div>;
+    return <div key={item.id} className="catalog-row"><span className="category-icon"><CategoryIcon name={'icon' in item ? item.icon : kind === 'people' ? 'heart' : 'wallet'} /></span><div><strong>{item.name}</strong><small>{!item.active ? 'Inativo · histórico preservado' : kind === 'accounts' ? `Saldo registrado no BS Wallet: ${money(balance(item.id))}` : person ? `${money(spending)} no mês${person.monthlySpendingLimitEnabled ? ` / ${money(person.monthlySpendingLimit)} de limite` : ''}` : kind === 'categories' ? 'Disponível nas carteiras pessoal e familiar' : item.scope === 'personal' ? 'Carteira pessoal' : 'Carteira compartilhada'}</small>{person?.monthlySpendingLimitEnabled && spending > person.monthlySpendingLimit && <small className="expense-text">Limite mensal ultrapassado</small>}</div><button className="icon-button" onClick={() => setEditor(item)} aria-label={`Editar ${item.name}`}><Pencil size={17} /></button>{kind === 'people' && <button className="icon-button" disabled={dependencies.length > 0} title={dependencies.length ? `Não é possível excluir: ${dependencies.join(', ')}` : 'Excluir pessoa'} aria-label={dependencies.length ? `Não é possível excluir ${item.name}: possui ${dependencies.join(', ')}` : `Excluir ${item.name}`} onClick={() => { if (window.confirm(`Mover ${item.name} para a lixeira?`)) void run(() => walletService.remove(ctx, 'people', item.id), 'Pessoa movida para a lixeira.'); }}><Trash2 size={17} /></button>}{kind === 'budgets' && <button className="icon-button" aria-label={`Excluir ${item.name}`} onClick={() => { if (window.confirm('Mover este orçamento para a lixeira?')) void run(() => walletService.remove(ctx, kind, item.id), 'Orçamento na lixeira.'); }}><Trash2 size={17} /></button>}</div>;
   })}</div> : <Empty title={`Adicione seu primeiro ${labels[kind]}`} description="Organize sua carteira com os cadastros que fazem sentido para você." action={<Button onClick={() => setEditor('new')}>Começar cadastro</Button>} />}{editor && <CatalogEditor kind={kind} existing={editor === 'new' ? undefined : editor} onClose={() => setEditor(null)} />}</section>;
 }
 function FamilySettings() {

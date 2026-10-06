@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths, budgetUsage, invoiceCycle, monthlyTotals, occurrenceDate, parseMoney, recurrenceDates, splitInstallments } from '../src/domain/finance';
+import { addMonths, budgetUsage, categoryKey, invoiceCycle, monthlyTotals, occurrenceDate, parseMoney, recurrenceDates, splitInstallments } from '../src/domain/finance';
 import type { Budget, Transaction } from '../src/domain/types';
 
 function transaction(overrides: Partial<Transaction>): Transaction {
@@ -7,6 +7,11 @@ function transaction(overrides: Partial<Transaction>): Transaction {
 }
 
 describe('regras financeiras', () => {
+  it('gera a mesma chave para nomes de categoria equivalentes', () => {
+    expect(categoryKey('  Educação Infantil ')).toBe('educacao_infantil');
+    expect(categoryKey('EDUCAÇÃO   INFANTIL')).toBe('educacao_infantil');
+  });
+
   it('converte BRL para centavos sem arredondamento de ponto flutuante', () => {
     expect(parseMoney('R$ 1.234,56')).toBe(123456);
     expect(parseMoney('0,01')).toBe(1);

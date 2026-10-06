@@ -1,4 +1,4 @@
-import type { Budget, Card, Frequency, Invoice, Recurrence, Transaction } from './types';
+import type { Budget, Card, Frequency, Invoice, Recurrence, Transaction, Transfer } from './types';
 
 export const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 export function parseMoney(input: string): number {
@@ -65,6 +65,14 @@ export function cardUsage(card: Card, transactions: Transaction[], invoices: Inv
   const used = transactions.filter(t => t.cardId === card.id && t.status !== 'cancelled' && t.type === 'expense' && (!t.invoiceId || !paid.has(t.invoiceId))).reduce((sum, t) => sum + t.amount, 0);
   return { used, available: card.totalLimit - used, percent: card.totalLimit > 0 ? used * 100 / card.totalLimit : 0 };
 }
+export function accountBalance(accountId: string, transactions: Transaction[], transfers: Transfer[], cards: Card[]) {
+  const debitCardIds = new Set(cards.filter(card => card.cardType === 'debit').map(card => card.id));
+  const transactionsTotal = transactions
+    .filter(transaction => transaction.accountId === accountId && transaction.status === 'confirmed' && (!transaction.cardId || debitCardIds.has(transaction.cardId)))
+    .reduce((total, transaction) => total + (transaction.type === 'income' ? transaction.amount : -transaction.amount), 0);
+  const transfersTotal = transfers.reduce((total, transfer) => total + (transfer.toAccountId === accountId ? transfer.amount : 0) - (transfer.fromAccountId === accountId ? transfer.amount : 0), 0);
+  return transactionsTotal + transfersTotal;
+}
 const monthIntervals: Partial<Record<Frequency, number>> = { monthly: 1, bimonthly: 2, quarterly: 3, semiannual: 6, annual: 12 };
 export function occurrenceDate(recurrence: Pick<Recurrence, 'frequency' | 'startDate' | 'customIntervalValue' | 'customIntervalUnit'>, index: number): string {
   const { frequency, startDate } = recurrence;
@@ -89,4 +97,5 @@ export function nextOccurrence(recurrence: Recurrence, after: string): string {
   throw new Error('Não foi possível calcular a próxima ocorrência.');
 }
 export const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim();
+export const categoryKey = (text: string) => normalize(text).replace(/\s+/g, '_');
 export function invoiceStatus(invoice: Invoice, now = today()): string { return invoice.paidAt ? 'Paga' : now > invoice.dueDate ? 'Vencida' : now > invoice.closingDate ? 'Fechada' : 'Aberta'; }

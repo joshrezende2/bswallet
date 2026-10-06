@@ -2,10 +2,10 @@ import { db } from './db';
 import { auth } from './auth';
 import { scheduleWalletSync } from './sync';
 import { base } from './factory';
-import { addDays, addMonths, budgetUsage, invoiceCycle, nextOccurrence, recurrenceDates, splitInstallments, today } from '../domain/finance';
+import { addDays, addMonths, budgetUsage, categoryKey, invoiceCycle, nextOccurrence, recurrenceDates, splitInstallments, today } from '../domain/finance';
 import { canRead, hasCapability, memberOf, requireRead, requireWrite, validateMemberChange, defaultPermissions } from '../domain/permissions';
 import { validateEntity, schemas } from '../domain/validation';
-import { entityKinds, type Attachment, type Base, type Context, type Entity, type EntityMap, type Invoice, type Kind, type Member, type Recurrence, type Scope, type Transaction, type WalletState } from '../domain/types';
+import { entityKinds, type Attachment, type Base, type Card, type Context, type Entity, type EntityMap, type Invoice, type Kind, type Member, type Recurrence, type Scope, type Transaction, type WalletState } from '../domain/types';
 
 export function recordAudit(state: WalletState, ctx: Context, kind: string, action: string, after: { id: string; scope?: Scope; ownerUserId?: string; version?: number }, before?: unknown) {
   const timestamp = new Date().toISOString();
@@ -31,7 +31,7 @@ export function validateRelations(state: WalletState, ctx: Context, kind: Kind, 
     if (!related) throw new Error(`O vínculo ${field} não está disponível. Restaure ou escolha outro cadastro.`);
     requireRead(state, ctx, related);
     if (!historical && !related.active && previous?.[field] !== id) throw new Error('Cadastros inativos não podem ser usados em novos lançamentos.');
-    if (entity.scope === 'shared' && related.scope !== 'shared') throw new Error('Um item compartilhado não pode apontar para um cadastro privado.');
+    if (collection !== 'categories' && entity.scope === 'shared' && related.scope !== 'shared') throw new Error('Um item compartilhado não pode apontar para um cadastro privado.');
     if ((collection === 'cards' || collection === 'accounts') && related.scope !== entity.scope) throw new Error('Cartão e conta devem pertencer à mesma carteira do lançamento.');
     if (id === entity.id) throw new Error('Um cadastro não pode apontar para si próprio.');
   }
@@ -47,7 +47,7 @@ export function validateRelations(state: WalletState, ctx: Context, kind: Kind, 
   if (kind === 'people') {
     const person = entity as EntityMap['people'];
     if (person.linkedUserId && !state.members.some(m => m.userId === person.linkedUserId && m.status === 'active')) throw new Error('Usuário não pertence a esta família.');
-    for (const id of person.allowedCategoryIds) { const c = state.categories.find(c => c.id === id); if (!c || !canRead(state, ctx, c) || (person.scope === 'shared' && c.scope !== 'shared')) throw new Error('Categoria permitida inválida.'); }
+    for (const id of person.allowedCategoryIds) { const c = state.categories.find(c => c.id === id); if (!c || !canRead(state, ctx, c)) throw new Error('Categoria permitida inválida.'); }
   }
   if (kind === 'recurrences') {
     const recurrence = entity as Recurrence;
@@ -58,9 +58,27 @@ export function validateRelations(state: WalletState, ctx: Context, kind: Kind, 
     const b = entity as EntityMap['budgets'];
     if (state.budgets.some(x => x.id !== b.id && x.active && x.scope === b.scope && x.month === b.month && x.categoryId === b.categoryId && x.personId === b.personId && (b.scope === 'shared' || x.ownerUserId === b.ownerUserId))) throw new Error('Já existe orçamento para esta categoria, pessoa e mês.');
   }
+  if (kind === 'cards') {
+    const card = entity as Card;
+    if (card.cardType === 'debit' && !card.accountId) throw new Error('Associe o cartão de débito a uma conta.');
+  }
+}
+export function personDependencies(state: WalletState, personId: string) {
+  const dependencies = [
+    state.transactions.some(item => item.personId === personId) && 'lançamentos',
+    state.cards.some(item => item.ownerPersonId === personId) && 'cartões',
+    state.accounts.some(item => item.ownerPersonId === personId) && 'contas',
+    state.recurrences.some(item => item.personId === personId) && 'recorrências',
+    state.budgets.some(item => item.personId === personId) && 'orçamentos',
+    state.transfers.some(item => item.personId === personId) && 'transferências',
+    state.trash.some(item => 'personId' in item.snapshot && item.snapshot.personId === personId || 'ownerPersonId' in item.snapshot && item.snapshot.ownerPersonId === personId) && 'itens na lixeira',
+    state.people.find(item => item.id === personId)?.linkedUserId && 'conta de usuário',
+  ];
+  return dependencies.filter((dependency): dependency is string => Boolean(dependency));
 }
 export function ensureInvoice(state: WalletState, ctx: Context, cardId: string, date: string, scope: Scope, overrideMonth?: string) {
   const card = state.cards.find(c => c.id === cardId); if (!card) throw new Error('Cartão não encontrado.');
+  if (card.cardType === 'debit') throw new Error('Cartões de débito não possuem fatura.');
   const cycle = invoiceCycle(date, card.closingDay, card.dueDay, overrideMonth);
   let invoice = state.invoices.find(i => i.cardId === cardId && i.cycleMonth === cycle.cycleMonth);
   if (!invoice) { invoice = { ...base(state.id, ctx.user.id, scope), cardId, ...cycle }; state.invoices.push(invoice); record(state, ctx, 'invoices', 'create', invoice); }
@@ -101,8 +119,17 @@ export const walletService = {
       const items = state[kind] as Entity[], existing = id ? items.find(e => e.id === id) : undefined;
       if (id && !existing) throw new Error('Item não encontrado.');
       if (existing && expectedVersion !== undefined && existing.version !== expectedVersion) throw new Error('Este item mudou em outra aba. Reabra antes de editar.');
-      const parsed = validateEntity(kind, input);
+      const normalizedInput = kind === 'categories' ? { ...(input as object), scope: 'shared' } : input;
+      const parsed = validateEntity(kind, normalizedInput);
       const item = { ...(existing ? touch(existing, ctx) : base(state.id, ctx.user.id, parsed.scope)), ...parsed } as Entity;
+      if (kind === 'categories') {
+        const category = item as EntityMap['categories'];
+        if (state.categories.some(current => current.id !== category.id && categoryKey(current.name) === categoryKey(category.name))) throw new Error('Já existe uma categoria com esse nome.');
+      }
+      if (kind === 'cards') {
+        const card = item as Card;
+        if (card.cardType === 'debit') Object.assign(card, { totalLimit: 0, closingDay: 0, dueDay: 0, additionalOfCardId: undefined });
+      }
       if (existing) requireWrite(state, ctx, existing, writeCapability(kind, existing, ctx));
       requireWrite(state, ctx, item, writeCapability(kind, item, ctx), !existing);
       assertScopeChange(state, kind, existing, item);
@@ -111,11 +138,18 @@ export const walletService = {
         const tx = item as Transaction; if (existing) assertUnpaid(state, existing as Transaction);
         if (!existing && tx.paymentMode !== 'single') throw new Error('Use o fluxo de parcelas ou recorrências.');
         if (tx.cardId) {
+          const card = state.cards.find(card => card.id === tx.cardId);
+          if (card?.cardType === 'debit') {
+            tx.accountId = card.accountId;
+            tx.invoiceId = undefined;
+            tx.competenceDate = tx.transactionDate;
+          } else {
           const previous = existing as Transaction | undefined;
           const oldInvoice = previous?.cardId === tx.cardId && previous.transactionDate === tx.transactionDate ? state.invoices.find(i => i.id === previous.invoiceId) : undefined;
           const invoice = ensureInvoice(state, ctx, tx.cardId, tx.transactionDate, tx.scope, invoiceMonth ?? oldInvoice?.cycleMonth);
           if (invoice.paidAt) throw new Error('Não é possível adicionar a uma fatura paga.');
           tx.invoiceId = invoice.id; tx.competenceDate = invoice.dueDate;
+          }
         } else tx.invoiceId = undefined;
       }
       if (existing) items[items.indexOf(existing)] = item; else items.push(item);
@@ -126,13 +160,15 @@ export const walletService = {
   async createTransaction(ctx: Context, input: Omit<Transaction, keyof Base | 'invoiceId'> & { scope: Scope }, count = 1, invoiceMonth?: string) {
     return mutate(ctx, state => {
       validateEntity('transactions', input);
-      const template = { ...base(state.id, ctx.user.id, input.scope), ...input } as Transaction;
+      const selectedCard = input.cardId ? state.cards.find(card => card.id === input.cardId) : undefined;
+      const template = { ...base(state.id, ctx.user.id, input.scope), ...input, accountId: selectedCard?.cardType === 'debit' ? selectedCard.accountId : input.accountId } as Transaction;
       requireWrite(state, ctx, template, 'transactions.editOwn', true); validateRelations(state, ctx, 'transactions', template);
       if (input.paymentMode === 'recurring') throw new Error('Crie uma recorrência pelo formulário da série.');
       if (input.paymentMode === 'installment' && (!input.cardId || input.type !== 'expense')) throw new Error('Parcelas precisam de uma despesa com cartão.');
+      if (input.paymentMode === 'installment' && selectedCard?.cardType === 'debit') throw new Error('Compras no débito não podem ser parceladas.');
       const amounts = input.paymentMode === 'installment' ? splitInstallments(input.amount, count) : [input.amount];
       const groupId = amounts.length > 1 ? crypto.randomUUID() : undefined;
-      const first = input.cardId ? ensureInvoice(state, ctx, input.cardId, input.transactionDate, input.scope, invoiceMonth) : undefined;
+      const first = input.cardId && selectedCard?.cardType !== 'debit' ? ensureInvoice(state, ctx, input.cardId, input.transactionDate, input.scope, invoiceMonth) : undefined;
       const transactions = amounts.map((amount, index) => {
         const invoice = first ? ensureInvoice(state, ctx, input.cardId!, input.transactionDate, input.scope, addMonths(`${first.cycleMonth}-01`, index).slice(0, 7)) : undefined;
         if (invoice?.paidAt) throw new Error('A fatura selecionada já foi paga. Reabra-a antes de adicionar.');
@@ -158,7 +194,11 @@ export const walletService = {
   async remove(ctx: Context, kind: Kind, id: string, series = false) {
     return mutate(ctx, state => {
       const item = (state[kind] as Entity[]).find(e => e.id === id); if (!item) throw new Error('Item não encontrado.');
-      if (!['transactions', 'transfers', 'recurrences', 'budgets'].includes(kind)) throw new Error('Desative este cadastro para preservar seus vínculos.');
+      if (!['transactions', 'transfers', 'recurrences', 'budgets', 'people'].includes(kind)) throw new Error('Desative este cadastro para preservar seus vínculos.');
+      if (kind === 'people') {
+        const dependencies = personDependencies(state, id);
+        if (dependencies.length) throw new Error(`Não é possível excluir esta pessoa porque ela possui: ${dependencies.join(', ')}.`);
+      }
       let targets: { kind: Kind; item: Entity }[] = [{ kind, item }];
       if (kind === 'transactions' && series) {
         const tx = item as Transaction;
@@ -167,7 +207,7 @@ export const walletService = {
       }
       if (kind === 'recurrences' && series) targets.push(...state.transactions.filter(t => t.recurrenceId === id).map(item => ({ kind: 'transactions' as const, item })));
       for (const target of targets) {
-        requireWrite(state, ctx, target.item, 'transactions.delete');
+        requireWrite(state, ctx, target.item, target.kind === 'people' ? 'catalog.manage' : 'transactions.delete');
         if (target.kind === 'transactions') assertUnpaid(state, target.item as Transaction);
         state.trash.push({ id: crypto.randomUUID(), kind: target.kind, snapshot: target.item, deletedAt: new Date().toISOString(), deletedBy: ctx.user.id, purgeAt: new Date(Date.now() + 30 * 86400000).toISOString() });
         (state[target.kind] as Entity[]) = (state[target.kind] as Entity[]).filter(e => e.id !== target.item.id);
@@ -263,9 +303,10 @@ export const walletService = {
         if (recurrence.scope === 'shared' && !hasCapability(state, ctx, 'shared.create')) continue;
         for (const date of recurrenceDates(recurrence, through)) {
           const key = `${recurrence.id}:${date}`; if (keys.has(key)) continue;
-          const invoice = recurrence.cardId ? ensureInvoice(state, ctx, recurrence.cardId, date, recurrence.scope) : undefined;
+          const card = recurrence.cardId ? state.cards.find(card => card.id === recurrence.cardId) : undefined;
+          const invoice = recurrence.cardId && card?.cardType !== 'debit' ? ensureInvoice(state, ctx, recurrence.cardId, date, recurrence.scope) : undefined;
           if (invoice?.paidAt) continue;
-          const tx: Transaction = { ...base(state.id, recurrence.ownerUserId, recurrence.scope), name: recurrence.name, amount: recurrence.amount, type: recurrence.type, status: recurrence.autoConfirm && date <= today() ? 'confirmed' : 'forecast', transactionDate: date, competenceDate: invoice?.dueDate ?? date, categoryId: recurrence.categoryId, personId: recurrence.personId, accountId: recurrence.accountId, cardId: recurrence.cardId, notes: recurrence.notes, paymentMode: 'recurring', recurrenceId: recurrence.id, occurrenceKey: key, invoiceId: invoice?.id };
+          const tx: Transaction = { ...base(state.id, recurrence.ownerUserId, recurrence.scope), name: recurrence.name, amount: recurrence.amount, type: recurrence.type, status: recurrence.autoConfirm && date <= today() ? 'confirmed' : 'forecast', transactionDate: date, competenceDate: invoice?.dueDate ?? date, categoryId: recurrence.categoryId, personId: recurrence.personId, accountId: card?.cardType === 'debit' ? card.accountId : recurrence.accountId, cardId: recurrence.cardId, notes: recurrence.notes, paymentMode: 'recurring', recurrenceId: recurrence.id, occurrenceKey: key, invoiceId: invoice?.id };
           state.transactions.push(tx); keys.add(key); record(state, ctx, 'transactions', 'create', tx);
         }
         if (recurrence.autoConfirm) for (const tx of state.transactions.filter(t => t.recurrenceId === recurrence.id && t.status === 'forecast' && t.transactionDate <= today())) { const before = { ...tx }; Object.assign(tx, touch(tx, ctx), { status: 'confirmed' }); record(state, ctx, 'transactions', 'status_change', tx, before); }

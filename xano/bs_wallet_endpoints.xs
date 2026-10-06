@@ -833,6 +833,40 @@ query "sync/people" verb=POST {
                       error = "SYNC_CONFLICT"
                     }
 
+                    db.has transactions {
+                      field_name = "person_id"
+                      field_value = $input.entity_id
+                    } as $has_person_transactions
+                    db.has cards {
+                      field_name = "owner_person_id"
+                      field_value = $input.entity_id
+                    } as $has_person_cards
+                    db.has accounts {
+                      field_name = "owner_person_id"
+                      field_value = $input.entity_id
+                    } as $has_person_accounts
+                    db.has recurrences {
+                      field_name = "person_id"
+                      field_value = $input.entity_id
+                    } as $has_person_recurrences
+                    db.has budgets {
+                      field_name = "person_id"
+                      field_value = $input.entity_id
+                    } as $has_person_budgets
+                    db.has transfers {
+                      field_name = "person_id"
+                      field_value = $input.entity_id
+                    } as $has_person_transfers
+                    db.has installment_groups {
+                      field_name = "person_id"
+                      field_value = $input.entity_id
+                    } as $has_person_installments
+
+                    precondition ($existing.linked_user_id == null && $has_person_transactions == false && $has_person_cards == false && $has_person_accounts == false && $has_person_recurrences == false && $has_person_budgets == false && $has_person_transfers == false && $has_person_installments == false) {
+                      error_type = "inputerror"
+                      error = "PERSON_HAS_DEPENDENCIES"
+                    }
+
                     db.has trash {
                       field_name = "id"
                       field_value = $input.operation_id
@@ -1173,6 +1207,7 @@ query "sync/categories" verb=POST {
                         version: $input.record.version
                         sync_status: $input.record.sync_status
                         name: $input.record.name
+                        normalized_name: $input.record.normalized_name
                         icon: $input.record.icon
                         type: $input.record.type
                         active: $input.record.active
@@ -1199,6 +1234,7 @@ query "sync/categories" verb=POST {
                         version: $input.record.version
                         sync_status: $input.record.sync_status
                         name: $input.record.name
+                        normalized_name: $input.record.normalized_name
                         icon: $input.record.icon
                         type: $input.record.type
                         active: $input.record.active
@@ -1760,6 +1796,7 @@ query "sync/cards" verb=POST {
                         bank: $input.record.bank
                         brand: $input.record.brand
                         last4_digits: $input.record.last4_digits
+                        card_type: $input.record.card_type
                         total_limit: $input.record.total_limit
                         closing_day: $input.record.closing_day
                         due_day: $input.record.due_day
@@ -1793,6 +1830,7 @@ query "sync/cards" verb=POST {
                         bank: $input.record.bank
                         brand: $input.record.brand
                         last4_digits: $input.record.last4_digits
+                        card_type: $input.record.card_type
                         total_limit: $input.record.total_limit
                         closing_day: $input.record.closing_day
                         due_day: $input.record.due_day
@@ -3290,6 +3328,7 @@ query "sync/transfers" verb=POST {
                         to_account_id: $input.record.to_account_id
                         amount: $input.record.amount
                         transfer_date: $input.record.transfer_date
+                        person_id: $input.record.person_id
                         notes: $input.record.notes
                       }
                     }
@@ -3317,6 +3356,7 @@ query "sync/transfers" verb=POST {
                         to_account_id: $input.record.to_account_id
                         amount: $input.record.amount
                         transfer_date: $input.record.transfer_date
+                        person_id: $input.record.person_id
                         notes: $input.record.notes
                       }
                     }

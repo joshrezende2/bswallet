@@ -18,7 +18,7 @@ const entities = {
   people: { ...base, name: 'Pessoa', monthlySpendingLimitEnabled: false, monthlySpendingLimit: 0, allowedCategoryIds: [], active: true },
   categories: { ...base, name: 'Mercado', icon: '', type: 'expense', active: true },
   accounts: { ...base, name: 'Conta', institution: '', type: 'checking', active: true },
-  cards: { ...base, name: 'Cartão', bank: '', brand: '', last4Digits: '1234', totalLimit: 10000, closingDay: 1, dueDay: 10, ownerPersonId: personId, active: true },
+  cards: { ...base, name: 'Cartão', bank: '', brand: '', last4Digits: '1234', cardType: 'credit', totalLimit: 10000, closingDay: 1, dueDay: 10, ownerPersonId: personId, active: true },
   recurrences: { ...base, name: 'Recorrência', amount: 100, type: 'expense', categoryId, frequency: 'monthly', customIntervalValue: 1, customIntervalUnit: 'month', startDate: date, nextOccurrenceDate: date, autoConfirm: false, active: true },
   invoices: { ...base, cardId, cycleMonth: '2026-10', closingDate: date, dueDate: '2026-10-10' },
   budgets: { ...base, name: 'Mercado', month: '2026-10', categoryId, limitAmount: 1000, thresholds: [80, 90, 100], active: true },
@@ -139,7 +139,7 @@ describe('mapeamento Xano', () => {
     ['transactions', { paymentMode: 'recurring', recurrenceId: base.id, occurrenceKey: `${base.id}:${date}` }, { payment_mode: 'recurring', recurrence_id: base.id, occurrence_key: `${base.id}:${date}` }],
     ['recurrences', { personId, accountId, cardId, notes: 'Série' }, { person_id: personId, account_id: accountId, card_id: cardId, notes: 'Série' }],
     ['budgets', { personId }, { person_id: personId }],
-    ['transfers', { notes: 'Transferência' }, { notes: 'Transferência' }],
+    ['transfers', { personId, notes: 'Transferência' }, { person_id: personId, notes: 'Transferência' }],
     ['installmentGroups', { categoryId, personId, accountId, notes: 'Legado' }, { category_id: categoryId, person_id: personId, account_id: accountId, notes: 'Legado' }],
     ['attachments', { mimeType: 'image/png' }, { mime_type: 'image/png' }],
   ] satisfies [string, Record<string, unknown>, Record<string, unknown>][] )('preserva vínculos e valores em %s: %j', (type, patch, expected) => {
@@ -157,7 +157,7 @@ describe('mapeamento Xano', () => {
   it.each(['delete', 'purge', 'restore'])('preserva proprietário e escopo privado para %s', action => {
     for (const type of [...Object.keys(entities), 'attachments']) {
       const envelope = serialized(type, { ...fixtures[type], scope: 'personal', ownerUserId: personId }, action);
-      expect(envelope.record).toMatchObject({ owner_user_id: personId, scope: 'private' });
+      expect(envelope.record).toMatchObject({ owner_user_id: personId, scope: type === 'categories' ? 'shared' : 'private' });
       expect(missingRecordFields(envelope.table, envelope.record)).toEqual([]);
     }
   });
@@ -167,7 +167,6 @@ describe('mapeamento Xano', () => {
     ['recurrences', 'recurrences', { endDate: '2027-01-01' }, 'end_date'],
     ['invoices', 'invoices', { paidAt: date }, 'paid_at'],
     ['installmentGroups', 'installment_groups', { firstInvoiceId: base.id }, 'first_invoice_id'],
-    ['transfers', 'transfers', { personId }, 'person_id'],
     ['budgets', 'budgets', { thresholds: [50, 80, 100] }, 'thresholds'],
   ] satisfies [string, string, Record<string, unknown>, string][] )('preserva %s no payload/auditoria sem inventar coluna %s', (type, table, patch, column) => {
     const payload = { ...fixtures[type], ...patch };
