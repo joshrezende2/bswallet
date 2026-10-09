@@ -15,7 +15,7 @@ test('formulários de criação mobile contêm a data e bloqueiam zoom apenas en
     const initialViewport = await page.locator('meta[name="viewport"]').getAttribute('content');
     expect(initialViewport).not.toContain('user-scalable=no');
 
-    await page.getByRole('button', { name: 'Adicionar lançamento', exact: true }).click();
+    await page.locator('header').getByRole('button', { name: 'Adicionar lançamento', exact: true }).click();
     const transactionDialog = page.getByRole('dialog');
     const date = transactionDialog.locator('input[type="date"]');
     await expect(transactionDialog).toBeVisible();

@@ -24,6 +24,7 @@ export function SyncStatus({ detailed = false, onLoginRequired }: { detailed?: b
   let label = 'Sincronização pendente', detail = 'Alterações salvas neste dispositivo';
   if (!xanoConfig.enabled) { label = 'Salvo neste dispositivo'; detail = 'Sincronização em nuvem desativada'; }
   else if (!online) { label = 'Modo offline'; detail = 'Alterações serão sincronizadas quando houver conexão'; }
+  else if (state.demo) { label = 'Demonstração local'; detail = 'Dados fictícios salvos somente neste dispositivo'; }
   else if (!connected) { label = 'Sessão expirada'; detail = sessionError || 'Sua sessão expirou. Entre novamente para continuar sincronizando.'; }
   else if (busy) { label = 'Sincronizando...'; }
   else if (info?.meta?.lastError === 'Existem conflitos aguardando resolução.') { label = 'Conflito de sincronização'; }

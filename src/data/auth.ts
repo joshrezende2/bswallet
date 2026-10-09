@@ -4,6 +4,7 @@ import type { User } from '../domain/types';
 import { xanoReady } from './xano/config';
 import { XanoError, clearXanoToken, getXanoSessionUserId, getXanoToken, hasXanoSession, reportXanoSessionError } from './xano/client';
 import { type RemoteUser, validateXanoSession, xanoChangePassword, xanoSignIn, xanoSignOut, xanoSignUp } from './xano/auth';
+import { hydrateUserFromXano, syncAllForUser } from './sync';
 
 export interface SignUpInput { name: string; email: string; username: string; password: string; }
 export interface AuthProvider {
@@ -131,7 +132,7 @@ export class LocalAuthProvider implements AuthProvider {
 function shouldFallback(error: unknown) { return error instanceof XanoError && (error.status === 0 || error.status >= 500); }
 
 function backgroundSync(user: User, hydrate = false) {
-  void import('./sync').then(async ({ syncAllForUser, hydrateUserFromXano }) => {
+  void Promise.resolve().then(async () => {
     if (!hasXanoSession(user.id)) return;
     if (hydrate) await hydrateUserFromXano(user);
     else await syncAllForUser(user);
@@ -189,7 +190,7 @@ class HybridAuthProvider implements AuthProvider {
       const user = await this.local.cacheRemoteUser(remote, password, remember);
       const hasWallet = (await db.wallets.toArray()).some(wallet => wallet.members.some(member => member.userId === user.id));
       if (hasWallet) backgroundSync(user, true);
-      else { const { hydrateUserFromXano } = await import('./sync'); await hydrateUserFromXano(user); }
+      else await hydrateUserFromXano(user);
       return user;
     } catch (error) {
       clearXanoToken(); reportXanoSessionError(error); throw error;

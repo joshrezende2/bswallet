@@ -20,5 +20,36 @@ input[type=date],input[type=month]{min-width:0;max-width:100%;min-inline-size:0;
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{.sidebar,.mobile-nav,.page-header,.period-toolbar,.button{display:none}.main-content{margin:0;padding:0}.panel{break-inside:avoid}}
 
+/* Accessibility, versioning and mobile resilience */
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.app-version{color:var(--primary)!important;font-weight:700}
+.profile-version{display:block;margin-top:4px;color:var(--primary);font-weight:700}
+.settings-profile>div{min-width:0}.settings-profile p{overflow-wrap:anywhere}
+.mobile-auth-benefit{display:none}
+.route-loading{min-height:260px;display:flex;align-items:center;justify-content:center;gap:12px;color:var(--muted)}
+.dashboard-more-button{display:none}
+.dashboard-secondary>.panel{content-visibility:auto;contain-intrinsic-size:260px}
+.movement-chart g[tabindex]:focus{outline:none}.movement-chart g[tabindex]:focus rect{stroke:var(--text);stroke-width:2px}
+input[type=date],input[type=month]{display:block;inline-size:100%;min-inline-size:0;max-inline-size:100%}
+.app-update{position:fixed;z-index:200;top:max(12px,env(safe-area-inset-top));left:50%;right:auto;width:min(760px,calc(100vw - 24px));transform:translateX(-50%);border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);padding:13px 14px}.app-update>span{flex:1;line-height:1.5}.app-update>span>strong{display:block}.app-update .icon-button{flex:0 0 44px}
+
+@media(max-width:760px){
+  .add-button{width:44px}
+  .mobile-nav span{font-size:11px}
+  .notification-button{width:44px;min-width:44px;height:44px}
+  .month-picker>.icon-button{min-width:44px;width:44px;height:44px}
+  .scope-switch button{min-height:44px;font-size:12px}
+  .row-actions .icon-button,.attachment-row .icon-button{min-width:44px;width:44px;height:44px}
+  .transaction-name{min-height:44px}
+  .metric small,.metric.balance small,.chart-legend,.category-legend small,.recurrence-title small,.balance-note,.date-cell{font-size:11px}
+  .category-legend strong,.transaction-name,.amount{font-size:12px}
+  .dashboard-more-button{display:flex;width:100%;margin:16px 0;justify-content:space-between}
+  .dashboard-more-button .rotated{transform:rotate(180deg)}
+  .dashboard-secondary.is-collapsed{display:none}
+  .mobile-auth-benefit{display:flex;align-items:flex-start;gap:9px;margin-top:22px;padding:12px;border-radius:9px;background:var(--tint);color:var(--text);font-size:12px;line-height:1.5}
+  .profile-version{font-size:12px!important}
+  .app-update{align-items:stretch;flex-wrap:wrap}.app-update>span{flex-basis:calc(100% - 52px)}.app-update .button{flex:1}
+}
+
 .sync-details strong{font-size:16px}.sync-details small{font-size:13px;line-height:1.5}.sync-details .install-button{width:auto;margin-top:12px;padding:10px 18px;font-size:13px}.sync-details>div{min-width:0;overflow-wrap:anywhere}
 @media(max-width:480px){.category-checklist{grid-template-columns:1fr}}

@@ -18,6 +18,7 @@ async function backend(page: Page) {
     }
     if (url.endsWith('/auth/login')) { control.unauthorized = false; return reply({ authToken: 'test-token', user }); }
     if (url.endsWith('/auth/me')) return reply(user);
+    if (url.endsWith('/settings/last')) return reply({ version: '0.1.0', published_at: Date.now(), published: true, active: true });
     expect(route.request().headers().authorization).toBe('Bearer test-token');
     if (control.unauthorized) return reply({ message: 'Unauthorized' }, 401);
     if (control.fail) return reply({ message: 'Falha temporária simulada' }, 503);
@@ -52,7 +53,7 @@ async function signup(page: Page) {
   await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
   await page.getByRole('link', { name: 'Sincronização', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Sincronização em nuvem' })).toBeVisible();
-  await expect(page.getByText('Conta BS Wallet conectada', { exact: true })).toBeVisible();
+  await expect(page.getByText('v0.1.0 · conectada', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Retomar sincronização' })).toHaveCount(0);
 }
 
@@ -134,4 +135,25 @@ test('mostra falha real, conserva pendências e permite nova tentativa manual', 
   await page.getByRole('button', { name: 'Sincronizar', exact: true }).last().click();
   await expect(page.getByText('Sincronizado', { exact: true }).last()).toBeVisible();
   await expect(page.getByText('Alterações pendentes: 0')).toBeVisible();
+});
+
+test('exibe a versão carregada e mantém o campo de data dentro do modal mobile', async ({ page }) => {
+  await backend(page);
+  await signup(page);
+  await expect(page.getByText('v0.1.0 · conectada', { exact: true })).toBeVisible();
+
+  await page.goto('/app/resumo');
+  await page.setViewportSize({ width: 428, height: 926 });
+  await page.getByRole('button', { name: 'Adicionar lançamento', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const dateBox = await dialog.getByLabel('Data', { exact: true }).boundingBox();
+  const innerBox = await dialog.locator('.modal-inner').boundingBox();
+  expect(dateBox).not.toBeNull();
+  expect(innerBox).not.toBeNull();
+  expect(dateBox!.x + dateBox!.width).toBeLessThanOrEqual(innerBox!.x + innerBox!.width + 1);
+  await dialog.getByRole('button', { name: 'Fechar' }).click();
+
+  await page.goto('/app/ajustes');
+  await expect(page.getByText('v0.1.0', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

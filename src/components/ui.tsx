@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode, type ButtonHTMLAttributes } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type ButtonHTMLAttributes } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, BriefcaseBusiness, Car, CircleHelp, CreditCard, FileText, Heart, House, ShoppingCart, Sparkles, Utensils, Wallet, X } from 'lucide-react';
 import type { Status } from '../domain/types';
 export function Button({ variant = 'primary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger' }) { return <button {...props} className={`button ${variant} ${className}`} />; }
@@ -26,7 +27,17 @@ export function Modal({ title, children, onClose, wide = false, preventViewportZ
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
   useEffect(() => preventViewportZoom ? lockViewportZoom() : undefined, [preventViewportZoom]);
-  return <dialog ref={ref} className={`modal ${wide ? 'modal-wide' : ''}`} onCancel={e => { e.preventDefault(); onClose(); }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}><div className="modal-inner"><header className="modal-header"><h2>{title}</h2><button className="icon-button" aria-label="Fechar" onClick={onClose}><X size={20} /></button></header>{children}</div></dialog>;
+  return createPortal(<dialog ref={ref} className={`modal ${wide ? 'modal-wide' : ''}`} onCancel={e => { e.preventDefault(); onClose(); }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}><div className="modal-inner"><header className="modal-header"><h2>{title}</h2><button className="icon-button" aria-label="Fechar" onClick={onClose}><X size={20} /></button></header>{children}</div></dialog>, document.body);
+}
+interface ConfirmationRequest { title: string; description: string; confirmLabel?: string; resolve: (confirmed: boolean) => void; }
+export function useConfirmDialog() {
+  const [request, setRequest] = useState<ConfirmationRequest | null>(null);
+  const confirm = useCallback((options: Omit<ConfirmationRequest, 'resolve'>) => new Promise<boolean>(resolve => setRequest({ ...options, resolve })), []);
+  const close = useCallback((confirmed: boolean) => {
+    setRequest(current => { current?.resolve(confirmed); return null; });
+  }, []);
+  const confirmation = request ? <Modal title={request.title} onClose={() => close(false)}><p>{request.description}</p><footer className="form-actions"><Button variant="secondary" onClick={() => close(false)}>Cancelar</Button><Button variant="danger" onClick={() => close(true)}>{request.confirmLabel ?? 'Confirmar'}</Button></footer></Modal> : null;
+  return { confirm, confirmation };
 }
 export function Empty({ title = 'Tudo pronto para começar', description = 'Seus registros aparecerão aqui.', action }: { title?: string; description?: string; action?: ReactNode }) { return <div className="empty"><span className="empty-icon"><Wallet size={28} /></span><h3>{title}</h3><p>{description}</p>{action}</div>; }
 export function StatusBadge({ status }: { status: Status | string }) { const labels: Record<string, string> = { confirmed: 'Confirmado', pending: 'Pendente', forecast: 'Previsão', cancelled: 'Cancelado' }; return <span className={`status ${status}`}>{labels[status] ?? status}</span>; }

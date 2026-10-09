@@ -19,7 +19,7 @@ export function WalletProvider({ user, children, initialWorkspaceId = '', emptyC
   const ctx = useMemo<Context>(() => ({ user, workspaceId: selected?.id ?? '' }), [user, selected?.id]);
   const state = useMemo(() => selected ? accessibleState(selected, ctx) : undefined, [selected, ctx]);
   const run = useCallback(async (action: () => Promise<unknown>, success = 'Salvo no dispositivo.') => { try { await action(); if (success) toast(success); return true; } catch (e) { toast(e instanceof Error ? e.message : 'Não foi possível concluir a ação.'); return false; } }, []);
-  useEffect(() => { if (!selected) return; setScope(selected.workspace.defaultScope === 'shared' && selected.workspace.sharingEnabled && hasCapability(selected, ctx, 'shared.read') ? 'shared' : 'personal'); }, [selected?.id]);
+  useEffect(() => { if (!selected) return; setScope(selected.workspace.defaultScope === 'shared' && selected.workspace.sharingEnabled && hasCapability(selected, ctx, 'shared.read') ? 'shared' : 'personal'); }, [selected, ctx]);
   useEffect(() => { if (!ctx.workspaceId) return; let live = true; const refresh = () => walletService.refresh(ctx, addMonths(`${month}-01`, 2)).catch(e => { if (live) setError(e.message); }); void refresh(); const timer = setInterval(refresh, 60000); return () => { live = false; clearInterval(timer); }; }, [ctx, month]);
   useEffect(() => { if (!message) return; const timer = setTimeout(() => toast(''), 5500); return () => clearTimeout(timer); }, [message]);
   useEffect(() => { if (selected && scope === 'shared' && (!selected.workspace.sharingEnabled || !hasCapability(selected, ctx, 'shared.read'))) setScope('personal'); }, [selected, ctx, scope]);
