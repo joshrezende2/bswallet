@@ -22,7 +22,7 @@ input[type=date],input[type=month]{min-width:0;max-width:100%;min-inline-size:0;
 
 /* Accessibility, versioning and mobile resilience */
 .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.app-version{color:var(--primary)!important;font-weight:700}
+.app-version{display:block;margin-top:2px;color:var(--primary)!important;font-weight:700}
 .profile-version{display:block;margin-top:4px;color:var(--primary);font-weight:700}
 .settings-profile>div{min-width:0}.settings-profile p{overflow-wrap:anywhere}
 .mobile-auth-benefit{display:none}

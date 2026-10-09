@@ -18,7 +18,7 @@ async function backend(page: Page) {
     }
     if (url.endsWith('/auth/login')) { control.unauthorized = false; return reply({ authToken: 'test-token', user }); }
     if (url.endsWith('/auth/me')) return reply(user);
-    if (url.endsWith('/settings/last')) return reply({ version: '0.1.0', published_at: Date.now(), published: true, active: true });
+    if (url.endsWith('/settings/last')) return reply({ version: '0.1.1', published_at: Date.now(), published: true, active: true });
     expect(route.request().headers().authorization).toBe('Bearer test-token');
     if (control.unauthorized) return reply({ message: 'Unauthorized' }, 401);
     if (control.fail) return reply({ message: 'Falha temporária simulada' }, 503);
@@ -53,7 +53,7 @@ async function signup(page: Page) {
   await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
   await page.getByRole('link', { name: 'Sincronização', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Sincronização em nuvem' })).toBeVisible();
-  await expect(page.getByText('v0.1.0 · conectada', { exact: true })).toBeVisible();
+  await expect(page.getByText('v0.1.1 · conectada', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Retomar sincronização' })).toHaveCount(0);
 }
 
@@ -138,9 +138,23 @@ test('mostra falha real, conserva pendências e permite nova tentativa manual', 
 });
 
 test('exibe a versão carregada e mantém o campo de data dentro do modal mobile', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  page.on('pageerror', error => consoleErrors.push(error.message));
   await backend(page);
   await signup(page);
-  await expect(page.getByText('v0.1.0 · conectada', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/app\/ajustes\/sincronizacao$/);
+  await expect(page).toHaveTitle(/BS Wallet/);
+  await expect(page.locator('vite-error-overlay')).toHaveCount(0);
+  const accountLabel = page.getByText('Conta BS Wallet', { exact: true });
+  const versionLabel = page.getByText('v0.1.1 · conectada', { exact: true });
+  await expect(versionLabel).toBeVisible();
+  const accountBox = await accountLabel.boundingBox();
+  const versionBox = await versionLabel.boundingBox();
+  expect(accountBox).not.toBeNull();
+  expect(versionBox).not.toBeNull();
+  expect(versionBox!.y).toBeGreaterThan(accountBox!.y);
+  if (process.env.SIDEBAR_VERSION_SCREENSHOT) await page.locator('.sidebar-bottom').screenshot({ path: process.env.SIDEBAR_VERSION_SCREENSHOT });
 
   await page.goto('/app/resumo');
   await page.setViewportSize({ width: 428, height: 926 });
@@ -154,6 +168,7 @@ test('exibe a versão carregada e mantém o campo de data dentro do modal mobile
   await dialog.getByRole('button', { name: 'Fechar' }).click();
 
   await page.goto('/app/ajustes');
-  await expect(page.getByText('v0.1.0', { exact: true })).toBeVisible();
+  await expect(page.getByText('v0.1.1', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(consoleErrors).toEqual([]);
 });

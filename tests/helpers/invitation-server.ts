@@ -31,7 +31,7 @@ export function invitationServer() {
         users.set(created.email, created); return reply({ authToken: `test-session-${created.id}`, user: created });
       }
       if (path === '/auth/login') { const found = users.get(String(data.email).toLowerCase()); return found ? reply({ authToken: `test-session-${found.id}`, user: found }) : fail('Credenciais inválidas', 401); }
-      if (path === '/settings/last') return reply({ version: '0.1.0', published_at: Date.now(), published: true, active: true });
+      if (path === '/settings/last') return reply({ version: '0.1.1', published_at: Date.now(), published: true, active: true });
       if (path === '/workspace/invites/resolve') {
         const item = invites.find(invite => invite.token_hash === hash(String(data.token)) && invite.status === 'pending' && invite.expires_at > Date.now());
         return reply(item ? { valid: true, workspace_name: workspaceName(item.workspace_id), role: item.role, masked_email: `${item.email.slice(0, 2)}***@${item.email.split('@')[1]}`, expires_at: item.expires_at } : { valid: false });

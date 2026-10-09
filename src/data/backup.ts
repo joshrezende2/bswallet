@@ -8,6 +8,7 @@ import { memberOf, requireWrite } from '../domain/permissions';
 import { schemas, validateEntity } from '../domain/validation';
 import { entityKinds, type Attachment, type Context, type Entity, type Kind, type Scope, type WalletState } from '../domain/types';
 import { categoryKey } from '../domain/finance';
+import { APP_VERSION } from './app-version';
 const metadata = z.object({ id: z.string().min(1).max(200), workspaceId: z.string().min(1), ownerUserId: z.string().min(1), scope: z.enum(['personal', 'shared']), createdAt: z.string().datetime(), createdBy: z.string(), updatedAt: z.string().datetime(), updatedBy: z.string(), version: z.number().int().positive(), syncStatus: z.enum(['local', 'pending', 'synced', 'conflict']) });
 const invoice = metadata.extend({ cardId: z.string(), cycleMonth: z.string().regex(/^\d{4}-\d{2}$/), closingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), paidAt: z.string().datetime().optional() });
 const group = metadata.extend({ originalAmount: z.number().int().positive(), numberOfInstallments: z.number().int().min(2).max(360), cardId: z.string(), purchaseDate: z.string(), firstInvoiceId: z.string() });
@@ -41,7 +42,7 @@ export async function createBackup(ctx: Context) {
   state.occurrenceKeys = (raw?.occurrenceKeys ?? []).filter(k => state.recurrences.some(r => k.startsWith(r.id + ':')));
   const data = { ...Object.fromEntries(entityKinds.map(k => [k, state[k]])), workspace: { name: state.workspace.name }, trash: state.trash, audit: state.audit, occurrenceKeys: state.occurrenceKeys, preferences: state.preferences };
   void txIds;
-  return { schemaVersion: 1, appVersion: '0.1.0', exportedAt: new Date().toISOString(), exportedBy: ctx.user.id, data, attachments } as Backup;
+  return { schemaVersion: 1, appVersion: APP_VERSION, exportedAt: new Date().toISOString(), exportedBy: ctx.user.id, data, attachments } as Backup;
 }
 export async function exportBackup(ctx: Context) { const backup = await createBackup(ctx); downloadBlob(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }), `bs-wallet-backup-${new Date().toISOString().slice(0, 10)}.json`); }
 export async function importBackup(ctx: Context, input: unknown) {
