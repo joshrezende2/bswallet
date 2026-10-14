@@ -93,7 +93,7 @@ function assertScopeChange(state: WalletState, kind: Kind, before: Entity | unde
 async function mutate<T>(ctx: Context, fn: (state: WalletState) => T | Promise<T>): Promise<T> {
   await auth.requireUser(ctx.user.id);
   let changed = false;
-  const result = await db.transaction('rw', [db.wallets, db.attachments], async () => {
+  const result = await db.transaction('rw', [db.wallets, db.attachments, db.users], async () => {
     const state = await db.wallets.get(ctx.workspaceId); if (!state) throw new Error('Família não encontrada.'); memberOf(state, ctx);
     const pending = state.outbox.length;
     const result = await fn(state); await db.wallets.put(state); changed = state.outbox.length > pending; return result;
@@ -115,13 +115,14 @@ export function accessibleState(state: WalletState, ctx: Context): WalletState {
 }
 export const walletService = {
   async save<K extends keyof typeof schemas>(ctx: Context, kind: K, input: unknown, id?: string, expectedVersion?: number, invoiceMonth?: string) {
-    return mutate(ctx, state => {
+    return mutate(ctx, async state => {
       const items = state[kind] as Entity[], existing = id ? items.find(e => e.id === id) : undefined;
       if (id && !existing) throw new Error('Item não encontrado.');
       if (existing && expectedVersion !== undefined && existing.version !== expectedVersion) throw new Error('Este item mudou em outra aba. Reabra antes de editar.');
       const normalizedInput = kind === 'categories' ? { ...(input as object), scope: 'shared' } : input;
       const parsed = validateEntity(kind, normalizedInput);
       const item = { ...(existing ? touch(existing, ctx) : base(state.id, ctx.user.id, parsed.scope)), ...parsed } as Entity;
+      if (kind === 'people' && !existing && !(item as EntityMap['people']).allowedCategoryIds.length) (item as EntityMap['people']).allowedCategoryIds = state.categories.filter(category => category.active).map(category => category.id);
       if (kind === 'categories') {
         const category = item as EntityMap['categories'];
         if (state.categories.some(current => current.id !== category.id && categoryKey(current.name) === categoryKey(category.name))) throw new Error('Já existe uma categoria com esse nome.');
@@ -154,6 +155,24 @@ export const walletService = {
       }
       if (existing) items[items.indexOf(existing)] = item; else items.push(item);
       record(state, ctx, kind, existing ? 'update' : 'create', item, existing);
+      if (kind === 'categories' && !existing) {
+        const category = item as EntityMap['categories'];
+        for (const person of state.people) {
+          const before = { ...person, allowedCategoryIds: [...person.allowedCategoryIds] };
+          const allowed = person.allowedCategoryIds.length ? [...person.allowedCategoryIds] : state.categories.filter(current => current.id !== category.id && current.active).map(current => current.id);
+          if (!allowed.includes(category.id)) allowed.push(category.id);
+          const next = { ...touch(person, ctx), allowedCategoryIds: allowed };
+          state.people[state.people.indexOf(person)] = next;
+          record(state, ctx, 'people', 'update', next, before);
+        }
+      }
+      if (kind === 'people') {
+        const person = item as EntityMap['people'];
+        if (person.linkedUserId) {
+          const user = await db.users.get(person.linkedUserId);
+          if (user && user.type !== person.type) await db.users.put({ ...user, type: person.type });
+        }
+      }
       return item as EntityMap[K];
     });
   },
@@ -257,6 +276,10 @@ export const walletService = {
       if (state.members.some(m => m.userId === user.id)) throw new Error('Este usuário já está na família.');
       const member: Member = { id: crypto.randomUUID(), userId: user.id, name: user.name, email: user.email, role: 'member', permissions: [...defaultPermissions], status: 'active' };
       state.members.push(member); record(state, ctx, 'members', 'create', member);
+      if (!state.people.some(person => person.linkedUserId === user.id)) {
+        const person = { ...base(state.id, ctx.user.id), name: user.name, linkedUserId: user.id, type: user.type, monthlySpendingLimitEnabled: false, monthlySpendingLimit: 0, allowedCategoryIds: state.categories.filter(category => category.active).map(category => category.id), active: true } as EntityMap['people'];
+        state.people.push(person); record(state, ctx, 'people', 'create', person);
+      }
     });
   },
   async updateWorkspace(ctx: Context, name: string, defaultScope: Scope, sharingEnabled: boolean) {
@@ -269,6 +292,7 @@ export const walletService = {
     });
   },
   async markNoticeRead(ctx: Context, id: string) { return mutate(ctx, state => { const notice = state.notices.find(n => n.id === id); if (notice) { requireRead(state, ctx, notice); notice.read = true; } }); },
+  async markAllNoticesRead(ctx: Context) { return mutate(ctx, state => { for (const notice of state.notices) if (!notice.read && canRead(state, ctx, notice)) notice.read = true; }); },
   async attachments(ctx: Context, transactionId: string) {
     await auth.requireUser(ctx.user.id); const state = await db.wallets.get(ctx.workspaceId); if (!state) throw new Error('Família não encontrada.');
     const tx = state.transactions.find(t => t.id === transactionId); if (!tx) throw new Error('Lançamento não encontrado.'); requireRead(state, ctx, tx);

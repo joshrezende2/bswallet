@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '../src/data/db';
 import { initialWallet } from '../src/data/factory';
 import { record, recordAudit, walletService } from '../src/data/wallet-service';
-import { hydrateUserFromXano, isSyncing, startAutoSync, syncWallet } from '../src/data/sync';
+import { hydrateUserFromXano, isSyncing, resolveSyncConflicts, startAutoSync, syncWallet } from '../src/data/sync';
 import { xanoApi, XanoError } from '../src/data/xano/client';
 import type { Context, User } from '../src/domain/types';
 import { missingRecordFields } from './helpers/xano-contract';
@@ -12,7 +12,7 @@ vi.mock('../src/data/xano/config', () => ({ xanoConfig: { enabled: true }, xanoR
 vi.mock('../src/data/xano/client', async importOriginal => ({ ...await importOriginal<typeof import('../src/data/xano/client')>(), getXanoToken: () => control.token, hasXanoSession: (id: string) => Boolean(control.token) && id === 'user-test', getXanoSessionRevision: () => control.revision, getXanoSessionUserId: () => control.token ? 'user-test' : null, xanoApi: vi.fn() }));
 vi.mock('../src/data/auth', () => ({ auth: { requireUser: vi.fn().mockResolvedValue(undefined) } }));
 const api = vi.mocked(xanoApi);
-const user: User = { id: 'user-test', name: 'Teste', email: 'test@example.com', username: 'test', createdAt: '2026-01-01' };
+const user: User = { id: 'user-test', name: 'Teste', email: 'test@example.com', username: 'test', createdAt: '2026-01-01', type: 'adult' };
 let ctx: Context;
 let cleanup: (() => void) | undefined;
 const deferred = () => { let resolve!: () => void; const promise = new Promise<void>(r => { resolve = r; }); return { promise, resolve }; };
@@ -31,7 +31,7 @@ beforeEach(async () => {
   vi.stubGlobal('navigator', { onLine: true });
   control.enabled = true; control.token = 'test-token'; control.revision = 1;
   api.mockReset();
-  await db.wallets.clear(); await db.syncMeta.clear(); await db.attachments.clear();
+  await db.wallets.clear(); await db.syncMeta.clear(); await db.attachments.clear(); await db.safetyBackups.clear();
   const wallet = initialWallet(user);
   await db.wallets.put(wallet);
   ctx = { user, workspaceId: wallet.id };
@@ -219,6 +219,101 @@ describe('sincronização automática offline-first', () => {
     expect(saved.outbox.some(c => c.entityType === 'categories')).toBe(true);
     expect(saved.categories[0].syncStatus).toBe('conflict');
     expect((await db.syncMeta.get(ctx.workspaceId))!.lastError).toContain('conflitos');
+  });
+
+  it('resolve automaticamente dado pessoal escolhendo a alteração local mais recente', async () => {
+    const [tx] = await create('Local mais recente', 'personal');
+    let remote = { ...tx, name: 'Nuvem antiga', version: 2, updatedAt: '2026-01-01T00:00:00.000Z', updatedBy: user.id, syncStatus: 'synced' as const };
+    let conflicts = 1;
+    api.mockImplementation(async (_path, init) => {
+      if (init?.method === 'POST') {
+        if (conflicts-- > 0) throw new XanoError(409, 'SYNC_CONFLICT', { remote_version: 2 });
+        const envelope = JSON.parse(init.body as string);
+        remote = { ...envelope.payload, syncStatus: 'synced' };
+        return { ok: true };
+      }
+      return { workspace: { id: ctx.workspaceId, name: 'Família', created_by: user.id }, transactions: [{ ...remote, workspace_id: ctx.workspaceId, owner_user_id: user.id }], audit_logs: [{ entity_type: 'transactions', entity_id: remote.id, timestamp: remote.updatedAt, after_data: remote }] };
+    });
+    expect((await syncWallet(ctx)).status).toBe('synced');
+    const saved = (await db.wallets.get(ctx.workspaceId))!;
+    expect(saved.transactions[0]).toMatchObject({ name: 'Local mais recente', version: 3, syncStatus: 'synced' });
+    expect(saved.audit).toContainEqual(expect.objectContaining({ entityId: tx.id, action: 'sync_conflict_resolved', afterData: expect.objectContaining({ winner: 'local', automatic: true }) }));
+    expect(await db.safetyBackups.count()).toBe(1);
+    expect(api.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(2);
+  });
+
+  it('resolve automaticamente dado compartilhado de outro autor escolhendo a nuvem', async () => {
+    const [tx] = await create('Minha versão compartilhada');
+    const remote = { ...tx, name: 'Versão de outro membro', version: 2, updatedAt: '2026-01-01T00:00:00.000Z', updatedBy: 'other-user', ownerUserId: 'other-user', syncStatus: 'synced' as const };
+    let conflicts = 1;
+    api.mockImplementation(async (_path, init) => {
+      if (init?.method === 'POST' && conflicts-- > 0) throw new XanoError(409, 'SYNC_CONFLICT', { remote_version: 2 });
+      if (init?.method === 'POST') return { ok: true };
+      return { workspace: { id: ctx.workspaceId, name: 'Família', created_by: user.id }, transactions: [{ ...remote, workspace_id: ctx.workspaceId, owner_user_id: remote.ownerUserId }], audit_logs: [{ entity_type: 'transactions', entity_id: remote.id, timestamp: remote.updatedAt, after_data: remote }] };
+    });
+    expect((await syncWallet(ctx)).status).toBe('synced');
+    const saved = (await db.wallets.get(ctx.workspaceId))!;
+    expect(saved.transactions[0]).toMatchObject({ name: 'Versão de outro membro', version: 2, syncStatus: 'synced' });
+    expect(saved.outbox).toHaveLength(0);
+    expect(saved.audit).toContainEqual(expect.objectContaining({ entityId: tx.id, action: 'sync_conflict_resolved', afterData: expect.objectContaining({ winner: 'remote', rule: expect.stringContaining('outro autor') }) }));
+  });
+
+  it('faz somente uma nova tentativa automática e mantém o fallback manual', async () => {
+    const [tx] = await create('Conflito persistente', 'personal');
+    api.mockImplementation(async (_path, init) => {
+      if (init?.method === 'POST') throw new XanoError(409, 'SYNC_CONFLICT', { remote_version: 2 });
+      return { workspace: { id: ctx.workspaceId, name: 'Família', created_by: user.id }, transactions: [], audit_logs: [] };
+    });
+    expect((await syncWallet(ctx)).status).toBe('conflict');
+    expect(api.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(2);
+    expect((await db.wallets.get(ctx.workspaceId))!.outbox).toHaveLength(1);
+    expect((await db.syncMeta.get(ctx.workspaceId))!.conflicts).toEqual([expect.objectContaining({ entityType: 'transactions', entityId: tx.id })]);
+    expect(await db.safetyBackups.count()).toBe(1);
+    expect((await syncWallet(ctx)).status).toBe('conflict');
+    expect(api.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(3);
+    expect(await db.safetyBackups.count()).toBe(1);
+  });
+
+  it('resolve conflito mantendo a alteração local com uma nova versão', async () => {
+    const [tx] = await create('Minha versão');
+    let remote = { ...tx, name: 'Versão da nuvem', version: 2, syncStatus: 'synced' as const };
+    let reject = true, failSnapshot = true;
+    api.mockImplementation(async (_path, init) => {
+      if (init?.method === 'POST') {
+        if (reject) throw new XanoError(409, 'SYNC_CONFLICT', { remote_version: 2 });
+        const envelope = JSON.parse(init.body as string);
+        remote = { ...envelope.payload, syncStatus: 'synced' };
+        return { ok: true };
+      }
+      if (failSnapshot) throw new XanoError(503, 'Snapshot indisponível');
+      return { workspace: { id: ctx.workspaceId, name: 'Família', created_by: user.id }, transactions: [{ ...remote, workspace_id: ctx.workspaceId, owner_user_id: user.id }], audit_logs: [{ entity_type: 'transactions', entity_id: remote.id, timestamp: remote.updatedAt, after_data: remote }] };
+    });
+    expect((await syncWallet(ctx)).status).toBe('conflict');
+    reject = false; failSnapshot = false;
+    expect((await resolveSyncConflicts(ctx, 'local')).status).toBe('synced');
+    const saved = (await db.wallets.get(ctx.workspaceId))!;
+    expect(saved.transactions[0]).toMatchObject({ name: 'Minha versão', version: 3, syncStatus: 'synced' });
+    expect(saved.outbox).toHaveLength(0);
+    expect((await db.syncMeta.get(ctx.workspaceId))!.conflicts).toBeUndefined();
+    expect(await db.safetyBackups.count()).toBe(1);
+  });
+
+  it('resolve conflito aceitando a versão da nuvem e guarda backup de segurança', async () => {
+    const [tx] = await create('Minha versão');
+    const remote = { ...tx, name: 'Versão da nuvem', version: 2, syncStatus: 'synced' as const };
+    let failSnapshot = true;
+    api.mockImplementation(async (_path, init) => {
+      if (init?.method === 'POST') throw new XanoError(409, 'SYNC_CONFLICT', { remote_version: 2 });
+      if (failSnapshot) throw new XanoError(503, 'Snapshot indisponível');
+      return { workspace: { id: ctx.workspaceId, name: 'Família', created_by: user.id }, transactions: [{ ...remote, workspace_id: ctx.workspaceId, owner_user_id: user.id }], audit_logs: [{ entity_type: 'transactions', entity_id: remote.id, timestamp: remote.updatedAt, after_data: remote }] };
+    });
+    expect((await syncWallet(ctx)).status).toBe('conflict');
+    failSnapshot = false;
+    expect((await resolveSyncConflicts(ctx, 'remote')).status).toBe('synced');
+    const saved = (await db.wallets.get(ctx.workspaceId))!;
+    expect(saved.transactions[0]).toMatchObject({ name: 'Versão da nuvem', version: 2, syncStatus: 'synced' });
+    expect(saved.outbox).toHaveLength(0);
+    expect(await db.safetyBackups.count()).toBe(1);
   });
 
   it('hidratação de família existente preserva edições pendentes quando o envio falha', async () => {

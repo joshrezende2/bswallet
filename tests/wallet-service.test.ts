@@ -89,8 +89,8 @@ describe('persistência e fluxos críticos', () => {
   });
 
   it('impede categorias duplicadas sem diferenciar acentos ou maiúsculas', async () => {
-    await walletService.save(ctx, 'categories', { name: 'Educação', icon: 'file', type: 'expense', scope: 'personal', active: true });
-    await expect(walletService.save(ctx, 'categories', { name: ' educacao ', icon: 'file', type: 'expense', scope: 'shared', active: true })).rejects.toThrow('Já existe uma categoria');
+    await walletService.save(ctx, 'categories', { name: 'Cursos livres', icon: 'file', type: 'expense', scope: 'personal', active: true });
+    await expect(walletService.save(ctx, 'categories', { name: ' cursos LIVRES ', icon: 'file', type: 'expense', scope: 'shared', active: true })).rejects.toThrow('Já existe uma categoria');
     const saved = await db.wallets.get(ctx.workspaceId);
     expect(saved!.categories.find(category => category.name === 'Educação')?.scope).toBe('shared');
   });
@@ -120,5 +120,33 @@ describe('persistência e fluxos críticos', () => {
     expect(purchase).toMatchObject({ accountId: account.id, invoiceId: undefined });
     expect(saved!.invoices).toHaveLength(0);
     expect(accountBalance(account.id, saved!.transactions, saved!.transfers, saved!.cards)).toBe(7500);
+  });
+
+  it('aplica saldo inicial a partir da data informada', async () => {
+    const state = await db.wallets.get(ctx.workspaceId);
+    const salary = state!.categories.find(category => category.name === 'Salário')!;
+    const account = await walletService.save(ctx, 'accounts', { name: 'Conta com saldo', institution: '', type: 'checking', scope: 'shared', initialBalance: 100000, initialBalanceDate: '2026-02-01', active: true });
+    await walletService.createTransaction(ctx, { name: 'Movimento anterior', amount: 50000, type: 'income', status: 'confirmed', transactionDate: '2026-01-31', competenceDate: '2026-01-31', categoryId: salary.id, accountId: account.id, paymentMode: 'single', scope: 'shared' });
+    await walletService.createTransaction(ctx, { name: 'Movimento incluído', amount: 25000, type: 'income', status: 'confirmed', transactionDate: '2026-02-01', competenceDate: '2026-02-01', categoryId: salary.id, accountId: account.id, paymentMode: 'single', scope: 'shared' });
+    const saved = await db.wallets.get(ctx.workspaceId);
+    expect(accountBalance(account, saved!.transactions, saved!.transfers, saved!.cards)).toBe(125000);
+  });
+
+  it('habilita uma nova categoria para todas as pessoas e sincroniza o tipo vinculado localmente', async () => {
+    const person = (await db.wallets.get(ctx.workspaceId))!.people[0];
+    await walletService.save(ctx, 'people', { ...person, type: 'elderly' }, person.id, person.version);
+    const category = await walletService.save(ctx, 'categories', { name: 'Categoria recém-criada', icon: 'gift', type: 'expense', scope: 'shared', active: true });
+    const saved = await db.wallets.get(ctx.workspaceId);
+    expect(saved!.people.every(current => current.allowedCategoryIds.includes(category.id))).toBe(true);
+    expect((await db.users.get(user.id))?.type).toBe('elderly');
+  });
+
+  it('marca todas as notificações acessíveis como lidas', async () => {
+    const state = (await db.wallets.get(ctx.workspaceId))!;
+    state.notices.push({ id: 'notice-1', type: 'income', title: 'Receita', detail: 'Receita prevista', entityId: 'transaction-1', date: '2026-10-14', read: false, ownerUserId: user.id, scope: 'shared' });
+    state.notices.push({ id: 'notice-2', type: 'budget', title: 'Orçamento', detail: 'Limite', entityId: 'budget-1', date: '2026-10-14', read: false, ownerUserId: user.id, scope: 'shared' });
+    await db.wallets.put(state);
+    await walletService.markAllNoticesRead(ctx);
+    expect((await db.wallets.get(ctx.workspaceId))!.notices.every(notice => notice.read)).toBe(true);
   });
 });

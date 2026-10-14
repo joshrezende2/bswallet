@@ -8,7 +8,7 @@ async function backend(page: Page) {
   const audits: Record<string, unknown>[] = [];
   const operations: Record<string, any>[] = [];
   let user: Record<string, unknown> | undefined;
-  const control = { fail: false, unauthorized: false, hold: undefined as Promise<void> | undefined };
+  const control = { fail: false, unauthorized: false, conflictsRemaining: 0, hold: undefined as Promise<void> | undefined };
   await page.route('https://xano.ab1midia.com.br/**', async route => {
     const url = route.request().url();
     const reply = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -18,12 +18,13 @@ async function backend(page: Page) {
     }
     if (url.endsWith('/auth/login')) { control.unauthorized = false; return reply({ authToken: 'test-token', user }); }
     if (url.endsWith('/auth/me')) return reply(user);
-    if (url.endsWith('/settings/last')) return reply({ version: '0.1.1', published_at: Date.now(), published: true, active: true });
+    if (url.endsWith('/settings/last')) return reply({ version: '0.2.1', published_at: Date.now(), published: true, active: true });
     expect(route.request().headers().authorization).toBe('Bearer test-token');
     if (control.unauthorized) return reply({ message: 'Unauthorized' }, 401);
     if (control.fail) return reply({ message: 'Falha temporária simulada' }, 503);
     if (route.request().method() === 'POST') {
       const operation = route.request().postDataJSON();
+      if (control.conflictsRemaining > 0) { control.conflictsRemaining -= 1; return reply({ message: 'SYNC_CONFLICT', remote_version: 2 }, 409); }
       const missing = missingRecordFields(operation.table, operation.record);
       if (missing.length) return reply({ message: `Unable to locate input: record.${missing[0]}` }, 400);
       expect(JSON.stringify(operation)).not.toMatch(/somente-teste-1234|xano_password|admin_token|api_key/);
@@ -53,7 +54,7 @@ async function signup(page: Page) {
   await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
   await page.getByRole('link', { name: 'Sincronização', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Sincronização em nuvem' })).toBeVisible();
-  await expect(page.getByText('v0.1.1 · conectada', { exact: true })).toBeVisible();
+  await expect(page.getByText('v0.2.1 · conectada', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Retomar sincronização' })).toHaveCount(0);
 }
 
@@ -137,6 +138,38 @@ test('mostra falha real, conserva pendências e permite nova tentativa manual', 
   await expect(page.getByText('Alterações pendentes: 0')).toBeVisible();
 });
 
+test('resolve conflito mantendo a alteração deste dispositivo', async ({ page }) => {
+  const remote = await backend(page);
+  await signup(page);
+  remote.control.conflictsRemaining = 10;
+  await page.goto('/app/resumo');
+  await createTransaction(page, 'Compra em conflito');
+  await page.goto('/app/ajustes/sincronizacao');
+  await expect(page.getByText('Conflito de sincronização', { exact: true }).last()).toBeVisible();
+  await expect(page.locator('.sync-details').getByText('Este dispositivo e a nuvem alteraram o mesmo item. Escolha qual versão deve prevalecer.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Manter deste dispositivo' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Usar versão da nuvem' })).toBeVisible();
+  if (process.env.CONFLICT_SCREENSHOT) await page.locator('.sync-details').screenshot({ path: process.env.CONFLICT_SCREENSHOT });
+  remote.control.conflictsRemaining = 0;
+  await page.getByRole('button', { name: 'Manter deste dispositivo' }).click();
+  await expect(page.getByText('Sincronizado', { exact: true }).last()).toBeVisible();
+  await expect(page.getByText('Alterações pendentes: 0')).toBeVisible();
+  expect((await localWallet(page)).transactions.some(transaction => transaction.name === 'Compra em conflito')).toBe(true);
+});
+
+test('resolve automaticamente um conflito transitório com apenas uma nova tentativa', async ({ page }) => {
+  const remote = await backend(page);
+  await signup(page);
+  remote.control.conflictsRemaining = 1;
+  await page.goto('/app/resumo');
+  await createTransaction(page, 'Compra resolvida automaticamente');
+  await page.goto('/app/ajustes/sincronizacao');
+  await expect(page.getByText('Sincronizado', { exact: true }).last()).toBeVisible();
+  await expect(page.getByText('Alterações pendentes: 0')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Manter deste dispositivo' })).toHaveCount(0);
+  expect((await localWallet(page)).transactions.some(transaction => transaction.name === 'Compra resolvida automaticamente')).toBe(true);
+});
+
 test('exibe a versão carregada e mantém o campo de data dentro do modal mobile', async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
@@ -147,7 +180,7 @@ test('exibe a versão carregada e mantém o campo de data dentro do modal mobile
   await expect(page).toHaveTitle(/BS Wallet/);
   await expect(page.locator('vite-error-overlay')).toHaveCount(0);
   const accountLabel = page.getByText('Conta BS Wallet', { exact: true });
-  const versionLabel = page.getByText('v0.1.1 · conectada', { exact: true });
+  const versionLabel = page.getByText('v0.2.1 · conectada', { exact: true });
   await expect(versionLabel).toBeVisible();
   const accountBox = await accountLabel.boundingBox();
   const versionBox = await versionLabel.boundingBox();
@@ -155,6 +188,9 @@ test('exibe a versão carregada e mantém o campo de data dentro do modal mobile
   expect(versionBox).not.toBeNull();
   expect(versionBox!.y).toBeGreaterThan(accountBox!.y);
   if (process.env.SIDEBAR_VERSION_SCREENSHOT) await page.locator('.sidebar-bottom').screenshot({ path: process.env.SIDEBAR_VERSION_SCREENSHOT });
+  await versionLabel.click();
+  await expect(page.locator('.app-update').getByText('Você já está usando a versão mais recente.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Fechar aviso de atualização' }).click();
 
   await page.goto('/app/resumo');
   await page.setViewportSize({ width: 428, height: 926 });
@@ -168,7 +204,7 @@ test('exibe a versão carregada e mantém o campo de data dentro do modal mobile
   await dialog.getByRole('button', { name: 'Fechar' }).click();
 
   await page.goto('/app/ajustes');
-  await expect(page.getByText('v0.1.1', { exact: true })).toBeVisible();
+  await expect(page.getByText('v0.2.1', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(consoleErrors).toEqual([]);
 });

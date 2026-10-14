@@ -5,6 +5,7 @@ import { xanoReady } from './xano/config';
 import { XanoError, clearXanoToken, getXanoSessionUserId, getXanoToken, hasXanoSession, reportXanoSessionError } from './xano/client';
 import { type RemoteUser, validateXanoSession, xanoChangePassword, xanoSignIn, xanoSignOut, xanoSignUp } from './xano/auth';
 import { hydrateUserFromXano, syncAllForUser } from './sync';
+import { migrateLocalIdentity } from './identity-migration';
 
 export interface SignUpInput { name: string; email: string; username: string; password: string; }
 export interface AuthProvider {
@@ -64,7 +65,7 @@ export class LocalAuthProvider implements AuthProvider {
 
   async signUpWithId(input: SignUpInput, id = crypto.randomUUID()) {
     const normalized = normalizedSignup(input);
-    const user: User = { id, name: normalized.name, email: normalized.email, username: normalized.username, createdAt: new Date().toISOString() };
+    const user: User = { id, name: normalized.name, email: normalized.email, username: normalized.username, createdAt: new Date().toISOString(), type: 'adult' };
     const credential = await this.credential(user.id, normalized.password);
     await db.transaction('rw', [db.users, db.credentials, db.wallets], async () => {
       if (await db.users.where('email').equals(user.email).count() || await db.users.where('username').equals(user.username).count()) throw new Error('E-mail ou username já cadastrado neste dispositivo.');
@@ -93,10 +94,10 @@ export class LocalAuthProvider implements AuthProvider {
       const base = (usernameHint || remote.email.split('@')[0] || 'usuario').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 24) || 'usuario';
       let username = base, suffix = 1;
       while (await db.users.where('username').equals(username).count()) username = `${base.slice(0, 24)}_${suffix++}`.slice(0, 32);
-      user = { id: remote.id, name: remote.name, email: remote.email.trim().toLowerCase(), username, createdAt: createdAt(remote.created_at) };
+      user = { id: remote.id, name: remote.name, email: remote.email.trim().toLowerCase(), username, createdAt: createdAt(remote.created_at), type: remote.type ?? 'adult' };
       await db.users.add(user);
-    } else if (user.name !== remote.name || user.email !== remote.email.trim().toLowerCase()) {
-      user = { ...user, name: remote.name, email: remote.email.trim().toLowerCase() };
+    } else if (user.name !== remote.name || user.email !== remote.email.trim().toLowerCase() || remote.type !== undefined && user.type !== remote.type) {
+      user = { ...user, name: remote.name, email: remote.email.trim().toLowerCase(), type: remote.type ?? user.type };
       await db.users.put(user);
     }
     await this.writeCredential(user.id, password);
@@ -135,7 +136,7 @@ function backgroundSync(user: User, hydrate = false) {
   void Promise.resolve().then(async () => {
     if (!hasXanoSession(user.id)) return;
     if (hydrate) await hydrateUserFromXano(user);
-    else await syncAllForUser(user);
+    await syncAllForUser(user);
   }).catch(reportXanoSessionError);
 }
 
@@ -176,8 +177,10 @@ class HybridAuthProvider implements AuthProvider {
             if (!(error instanceof XanoError) || ![401, 403].includes(error.status)) throw error;
             remote = await xanoSignUp({ id: localUser.id, name: localUser.name, email: localUser.email, password }, remember);
           }
-          if (remote.id !== localUser.id) throw new Error('A conta remota possui um UUID diferente do cadastro local.');
-          backgroundSync(localUser);
+          if (remote.id !== localUser.id) {
+            localUser = await migrateLocalIdentity(localUser.id, remote);
+            backgroundSync(localUser, true);
+          } else backgroundSync(localUser);
         } catch (error) { clearXanoToken(); reportXanoSessionError(error); }
       }
       return localUser;

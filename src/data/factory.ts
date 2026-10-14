@@ -1,4 +1,18 @@
 import { capabilities, type Base, type User, type WalletState, type Scope } from '../domain/types';
+export const BASE_CATEGORIES = [
+  ['Mercado', 'shopping', 'expense'], ['Restaurante', 'utensils', 'expense'], ['Moradia', 'home', 'expense'],
+  ['Energia', 'zap', 'expense'], ['Água e gás', 'droplets', 'expense'], ['Internet e telefone', 'wifi', 'expense'],
+  ['Transporte', 'bus', 'expense'], ['Combustível', 'fuel', 'expense'], ['Saúde', 'heart', 'expense'],
+  ['Farmácia', 'pill', 'expense'], ['Educação', 'graduation', 'expense'], ['Filhos', 'baby', 'expense'],
+  ['Cuidados com idosos', 'accessibility', 'expense'], ['Pets', 'paw', 'expense'], ['Assinaturas e streaming', 'tv', 'expense'],
+  ['Lazer', 'sparkles', 'expense'], ['Viagens', 'plane', 'expense'], ['Roupas', 'shirt', 'expense'],
+  ['Cuidados pessoais', 'scissors', 'expense'], ['Academia e esportes', 'dumbbell', 'expense'], ['Seguros', 'shield', 'expense'],
+  ['Impostos e taxas', 'landmark', 'expense'], ['Empréstimos e dívidas', 'hand-coins', 'expense'], ['Manutenção da casa', 'wrench', 'expense'],
+  ['Tecnologia', 'laptop', 'expense'], ['Presentes e doações', 'gift', 'expense'], ['Outras despesas', 'circle-ellipsis', 'expense'],
+  ['Salário', 'wallet', 'income'], ['Freelance', 'briefcase', 'income'], ['Benefícios', 'badge-dollar', 'income'],
+  ['Aposentadoria', 'piggy-bank', 'income'], ['Aluguel recebido', 'key', 'income'], ['Rendimentos e investimentos', 'chart', 'income'],
+  ['Vendas', 'store', 'income'], ['Reembolsos', 'receipt', 'income'], ['Presentes recebidos', 'gift', 'income'], ['Outras receitas', 'circle-plus', 'income'],
+] as const;
 export function base(workspaceId: string, userId: string, scope: Scope = 'shared'): Base {
   const now = new Date().toISOString();
   return { id: crypto.randomUUID(), workspaceId, ownerUserId: userId, scope, createdAt: now, createdBy: userId, updatedAt: now, updatedBy: userId, version: 1, syncStatus: 'local' };
@@ -13,9 +27,9 @@ export function emptyWallet(user: User): WalletState {
 }
 export function initialWallet(user: User) {
   const state = emptyWallet(user);
-  for (const [name, icon, type] of [['Mercado', 'shopping', 'expense'], ['Restaurante', 'utensils', 'expense'], ['Transporte', 'car', 'expense'], ['Moradia', 'home', 'expense'], ['Saúde', 'heart', 'expense'], ['Lazer', 'sparkles', 'expense'], ['Salário', 'wallet', 'income'], ['Freelance', 'briefcase', 'income']] as const) {
+  for (const [name, icon, type] of BASE_CATEGORIES) {
     state.categories.push({ ...base(state.id, user.id), name, icon, type, active: true });
   }
-  state.people.push({ ...base(state.id, user.id), name: user.name, linkedUserId: user.id, monthlySpendingLimitEnabled: false, monthlySpendingLimit: 0, allowedCategoryIds: [], active: true });
+  state.people.push({ ...base(state.id, user.id), name: user.name, linkedUserId: user.id, type: user.type, monthlySpendingLimitEnabled: false, monthlySpendingLimit: 0, allowedCategoryIds: state.categories.map(category => category.id), active: true });
   return state;
 }

@@ -1,4 +1,5 @@
 export type Scope = 'personal' | 'shared';
+export type UserType = 'adult' | 'child' | 'elderly';
 export type Role = 'master_admin' | 'admin' | 'member';
 export const capabilities = ['shared.read', 'shared.create', 'transactions.editOwn', 'transactions.editOthers', 'transactions.delete', 'attachments.read', 'catalog.manage', 'budgets.manage', 'reports.read', 'members.manage'] as const;
 export type Capability = typeof capabilities[number];
@@ -10,7 +11,7 @@ export interface Base {
   createdAt: string; createdBy: string; updatedAt: string; updatedBy: string;
   version: number; syncStatus: 'local' | 'pending' | 'synced' | 'conflict';
 }
-export interface User { id: string; name: string; email: string; username: string; createdAt: string; }
+export interface User { id: string; name: string; email: string; username: string; createdAt: string; type: UserType; }
 export interface Member { id: string; userId: string; name: string; email: string; role: Role; permissions: Capability[]; status: 'active' | 'disabled'; }
 export interface Workspace { id: string; name: string; masterAdminUserId: string; defaultScope: Scope; sharingEnabled: boolean; }
 export interface Transaction extends Base {
@@ -21,10 +22,10 @@ export interface Transaction extends Base {
   installmentGroupId?: string; installmentNumber?: number; installmentTotal?: number;
   recurrenceId?: string; occurrenceKey?: string;
 }
-export interface Account extends Base { name: string; institution: string; type: 'checking' | 'savings' | 'digital' | 'cash' | 'other'; ownerPersonId?: string; active: boolean; notes?: string; }
+export interface Account extends Base { name: string; institution: string; type: 'checking' | 'savings' | 'digital' | 'cash' | 'other'; ownerPersonId?: string; initialBalance: number; initialBalanceDate?: string; active: boolean; notes?: string; }
 export interface Card extends Base { name: string; bank: string; brand: string; last4Digits: string; cardType: 'credit' | 'debit'; totalLimit: number; closingDay: number; dueDay: number; ownerPersonId: string; accountId?: string; additionalOfCardId?: string; active: boolean; notes?: string; }
 export interface Category extends Base { name: string; icon: string; type: 'expense' | 'income' | 'both'; active: boolean; }
-export interface Person extends Base { name: string; linkedUserId?: string; monthlySpendingLimitEnabled: boolean; monthlySpendingLimit: number; allowedCategoryIds: string[]; active: boolean; }
+export interface Person extends Base { name: string; linkedUserId?: string; type: UserType; monthlySpendingLimitEnabled: boolean; monthlySpendingLimit: number; allowedCategoryIds: string[]; active: boolean; }
 export interface Recurrence extends Base {
   name: string; amount: number; type: 'expense' | 'income'; categoryId: string;
   personId?: string; accountId?: string; cardId?: string; notes?: string;

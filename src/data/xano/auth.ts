@@ -7,6 +7,7 @@ export interface RemoteUser {
   created_at?: string | number;
   updated_at?: string | number;
   active?: boolean;
+  type?: 'adult' | 'child' | 'elderly';
 }
 
 interface AuthResponse { authToken: string; user?: RemoteUser; }

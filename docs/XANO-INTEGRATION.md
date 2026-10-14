@@ -4,6 +4,21 @@
 
 A aplicação continua **local-first**. Toda gravação acontece primeiro no IndexedDB/Dexie e entra na `outbox`. Quando existe sessão Xano, internet e `VITE_XANO_SYNC_ENABLED=true`, a fila é enviada ao backend e só então marcada como sincronizada.
 
+### Migração publicada em 14/10/2026
+
+As alterações abaixo foram aplicadas no workspace Xano **BS Wallet**, branch `v1`, data source `live`, e publicadas sem drafts pendentes:
+
+- `user.type` e `people.type`: enum `adult | child | elderly`, com padrão `adult`;
+- `accounts.initial_balance`: inteiro com sinal em centavos, padrão `0` (aceita saldo inicial negativo);
+- `accounts.initial_balance_date`: data anulável;
+- `auth/signup`, `auth/login` e `auth/me`: passam a persistir/devolver `type`;
+- `sync/people`: valida e persiste `type`, sincroniza o usuário vinculado e seleciona as categorias ativas ao criar uma pessoa sem lista explícita;
+- `sync/accounts`: persiste saldo e data iniciais, aceitando clientes antigos que omitem os campos;
+- `sync/categories`: inclui uma categoria ativa recém-criada nas permissões das pessoas ativas do mesmo workspace, sem duplicação;
+- `workspace/invites/accept`: cria ou atualiza a pessoa vinculada ao novo membro e habilita as categorias ativas do workspace.
+
+O envelope do frontend agora também envia `people.type`, `accounts.initial_balance` e `accounts.initial_balance_date` nas colunas próprias; o payload canônico continua sendo preservado em `audit_logs.after_data`.
+
 Arquivos principais:
 
 - `src/data/auth.ts`: autenticação híbrida local + Xano;
@@ -98,9 +113,9 @@ Campos comuns para people, categories, accounts, cards, recurrences, invoices, t
 
 | Endpoint sync | Campos adicionais aos comuns |
 | --- | --- |
-| people | name, linked_user_id, monthly_spending_limit_enabled, monthly_spending_limit, allowed_category_ids, active |
+| people | name, linked_user_id, type, monthly_spending_limit_enabled, monthly_spending_limit, allowed_category_ids, active |
 | categories | name, normalized_name, icon, type, active |
-| accounts | name, institution, type, owner_person_id, active, notes |
+| accounts | name, institution, type, owner_person_id, initial_balance, initial_balance_date, active, notes |
 | cards | name, bank, brand, last4_digits, card_type, total_limit, closing_day, due_day, owner_person_id, account_id, active, notes |
 | recurrences | name, amount, type, category_id, person_id, account_id, card_id, notes, frequency, custom_interval_value, custom_interval_unit, start_date, next_occurrence_date, auto_confirm, active |
 | invoices | card_id, cycle_month, closing_date, due_date, status |

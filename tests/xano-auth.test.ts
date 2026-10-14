@@ -118,16 +118,17 @@ describe('sessão Xano vinculada à conta local', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('recusa conectar UUID diferente e preserva sessão e carteira locais', async () => {
+  it('migra o UUID local depois que a mesma conta é validada remotamente', async () => {
     const user = await local.signUp({ name: 'A', email: 'a@test.com', username: 'user-a', password });
-    const wallets = await db.wallets.toArray();
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ authToken: 'remote-token', user: { id: 'different', name: 'A', email: user.email } })));
-    await auth.signIn(user.email, password);
-    expect(getXanoSessionError()).toContain('UUID diferente');
-    expect((await local.restoreSession())?.id).toBe(user.id);
-    expect(await db.wallets.toArray()).toEqual(wallets);
-    expect(getXanoToken()).toBeNull();
-    expect(syncAllForUser).not.toHaveBeenCalled();
+    const remoteId = crypto.randomUUID();
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ authToken: 'remote-token', user: { id: remoteId, name: 'A', email: user.email } })));
+    expect((await auth.signIn(user.email, password)).id).toBe(remoteId);
+    expect(getXanoSessionError()).toBe('');
+    expect((await local.restoreSession())?.id).toBe(remoteId);
+    expect(await db.users.get(user.id)).toBeUndefined();
+    expect(JSON.stringify(await db.wallets.toArray())).not.toContain(user.id);
+    expect(getXanoToken()).toBe('remote-token');
+    await vi.waitFor(() => expect(syncAllForUser).toHaveBeenCalledWith(expect.objectContaining({ id: remoteId })));
   });
 
   it('mantém login local e exibe falha de rede na conexão remota', async () => {

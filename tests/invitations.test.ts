@@ -161,7 +161,7 @@ describe('validação do contrato e retorno ao workspace aceito', () => {
     expect(await resolveInvite('invalid-token')).toEqual({ valid: false });
   });
   it('só conclui hidratação quando membership ativa está no IndexedDB; repetir não reenvia aceite', async () => {
-    const user = { id: 'user-1', name: 'Maria', email: invite.email, username: 'maria', createdAt: '2026-10-05' };
+    const user = { id: 'user-1', name: 'Maria', email: invite.email, username: 'maria', createdAt: '2026-10-05', type: 'adult' as const };
     await db.wallets.clear();
     vi.mocked(hydrateUserFromXano).mockReset().mockResolvedValue(0);
     await expect(loadAcceptedWorkspace(user, 'joined-family')).rejects.toThrow(/ainda não foi carregada/);
@@ -173,7 +173,7 @@ describe('validação do contrato e retorno ao workspace aceito', () => {
     await db.wallets.clear();
   });
   it('não conclui callback com membership desabilitada', async () => {
-    const user = { id: 'user-1', name: 'Maria', email: invite.email, username: 'maria', createdAt: '2026-10-05' };
+    const user = { id: 'user-1', name: 'Maria', email: invite.email, username: 'maria', createdAt: '2026-10-05', type: 'adult' as const };
     const wallet = initialWallet(user); wallet.members[0].status = 'disabled'; await db.wallets.put(wallet);
     vi.mocked(hydrateUserFromXano).mockReset().mockResolvedValue(1);
     await expect(loadAcceptedWorkspace(user, wallet.id)).rejects.toThrow(/ainda não foi carregada/);

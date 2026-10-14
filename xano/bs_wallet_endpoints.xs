@@ -37,6 +37,7 @@ query "auth/signup" verb=POST {
         email      : $input.email
         password   : $input.password
         active     : true
+        type       : "adult"
       }
     } as $user
 
@@ -48,7 +49,7 @@ query "auth/signup" verb=POST {
     } as $authToken
   }
 
-  response = {authToken: $authToken, user: {id: $user.id, created_at: $user.created_at, updated_at: $user.updated_at, name: $user.name, email: $user.email, active: $user.active}}
+  response = {authToken: $authToken, user: {id: $user.id, created_at: $user.created_at, updated_at: $user.updated_at, name: $user.name, email: $user.email, active: $user.active, type: $user.type}}
 }
 ---
 // Login por e-mail. Username remoto depende de adicionar username à tabela user.
@@ -64,7 +65,7 @@ query "auth/login" verb=POST {
     db.get "user" {
       field_name = "email"
       field_value = $input.email
-      output = ["id", "created_at", "updated_at", "name", "email", "password", "active"]
+      output = ["id", "created_at", "updated_at", "name", "email", "password", "active", "type"]
     } as $user
 
     precondition ($user != null && $user.active == true) {
@@ -90,7 +91,7 @@ query "auth/login" verb=POST {
     } as $authToken
   }
 
-  response = {authToken: $authToken, user: {id: $user.id, created_at: $user.created_at, updated_at: $user.updated_at, name: $user.name, email: $user.email, active: $user.active}}
+  response = {authToken: $authToken, user: {id: $user.id, created_at: $user.created_at, updated_at: $user.updated_at, name: $user.name, email: $user.email, active: $user.active, type: $user.type}}
 }
 ---
 query "auth/me" verb=GET {
@@ -103,7 +104,7 @@ query "auth/me" verb=GET {
     db.get "user" {
       field_name = "id"
       field_value = $auth.id
-      output = ["id", "created_at", "updated_at", "name", "email", "active"]
+      output = ["id", "created_at", "updated_at", "name", "email", "active", "type"]
     } as $user
   }
 
@@ -914,6 +915,7 @@ query "sync/people" verb=POST {
                         sync_status: $input.record.sync_status
                         name: $input.record.name
                         linked_user_id: $input.record.linked_user_id
+                        type: $input.record.type
                         monthly_spending_limit_enabled: $input.record.monthly_spending_limit_enabled
                         monthly_spending_limit: $input.record.monthly_spending_limit
                         allowed_category_ids: $input.record.allowed_category_ids
@@ -942,6 +944,7 @@ query "sync/people" verb=POST {
                         sync_status: $input.record.sync_status
                         name: $input.record.name
                         linked_user_id: $input.record.linked_user_id
+                        type: $input.record.type
                         monthly_spending_limit_enabled: $input.record.monthly_spending_limit_enabled
                         monthly_spending_limit: $input.record.monthly_spending_limit
                         allowed_category_ids: $input.record.allowed_category_ids
@@ -1502,6 +1505,8 @@ query "sync/accounts" verb=POST {
                         institution: $input.record.institution
                         type: $input.record.type
                         owner_person_id: $input.record.owner_person_id
+                        initial_balance: $input.record.initial_balance
+                        initial_balance_date: $input.record.initial_balance_date
                         active: $input.record.active
                         notes: $input.record.notes
                       }
@@ -1530,6 +1535,8 @@ query "sync/accounts" verb=POST {
                         institution: $input.record.institution
                         type: $input.record.type
                         owner_person_id: $input.record.owner_person_id
+                        initial_balance: $input.record.initial_balance
+                        initial_balance_date: $input.record.initial_balance_date
                         active: $input.record.active
                         notes: $input.record.notes
                       }

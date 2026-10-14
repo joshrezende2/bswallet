@@ -3,6 +3,7 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import { db } from '../data/db';
 import { APP_VERSION, isNewerVersion, latestPublishedVersion } from '../data/app-version';
 import { Button } from './ui';
+import { APP_UPDATE_REQUEST, type AppUpdateRequestDetail } from './AppVersionButton';
 
 const CHECK_INTERVAL = 15 * 60 * 1000;
 
@@ -39,6 +40,7 @@ export function AppUpdate() {
   const registration = useRef<ServiceWorkerRegistration | undefined>(undefined);
   const [availableVersion, setAvailableVersion] = useState('');
   const [pending, setPending] = useState(0);
+  const [manualStatus, setManualStatus] = useState('');
   const dirty = useDirtyForms();
   useEffect(() => {
     if (!dirty) return;
@@ -54,32 +56,45 @@ export function AppUpdate() {
     onRegisteredSW: (_url, currentRegistration) => { if (currentRegistration) registration.current = currentRegistration; },
   });
 
-  const check = useCallback(async () => {
-    if (!navigator.onLine || document.visibilityState === 'hidden') return;
+  const check = useCallback(async (manual = false) => {
+    if (!navigator.onLine || (!manual && document.visibilityState === 'hidden')) return 'Não foi possível verificar agora: o aplicativo está offline.';
     const controller = new AbortController();
     try {
-      const latest = await latestPublishedVersion(controller.signal);
-      if (isNewerVersion(latest.version)) {
-        setAvailableVersion(latest.version);
-        const currentRegistration = registration.current ?? await navigator.serviceWorker?.ready;
-        await currentRegistration?.update();
+      const currentRegistration = registration.current ?? await navigator.serviceWorker?.getRegistration();
+      await currentRegistration?.update();
+      const latest = await latestPublishedVersion(controller.signal).catch(() => null);
+      if (latest && isNewerVersion(latest.version)) setAvailableVersion(latest.version);
+      if (currentRegistration?.waiting) {
+        await updateServiceWorker(true);
+        return 'Atualização instalada. Recarregando…';
       }
+      return latest && isNewerVersion(latest.version) ? `A versão ${latest.version} está sendo preparada.` : 'Você já está usando a versão mais recente.';
     } catch {
       // Update checks must never interrupt the local-first application.
+      return 'Não foi possível verificar a atualização agora.';
     }
-  }, []);
+  }, [updateServiceWorker]);
 
   useEffect(() => {
     void check();
     const timer = window.setInterval(() => { void check(); }, CHECK_INTERVAL);
     const visible = () => { if (document.visibilityState === 'visible') void check(); };
-    window.addEventListener('online', check);
-    window.addEventListener('focus', check);
+    const online = () => { void check(); };
+    const focus = () => { void check(); };
+    const requested = (event: Event) => {
+      const detail = (event as CustomEvent<AppUpdateRequestDetail>).detail;
+      setManualStatus('Verificando atualização…');
+      void check(true).then(message => { setManualStatus(message); detail?.complete(message); });
+    };
+    window.addEventListener('online', online);
+    window.addEventListener('focus', focus);
+    window.addEventListener(APP_UPDATE_REQUEST, requested);
     document.addEventListener('visibilitychange', visible);
     return () => {
       window.clearInterval(timer);
-      window.removeEventListener('online', check);
-      window.removeEventListener('focus', check);
+      window.removeEventListener('online', online);
+      window.removeEventListener('focus', focus);
+      window.removeEventListener(APP_UPDATE_REQUEST, requested);
       document.removeEventListener('visibilitychange', visible);
     };
   }, [check]);
@@ -89,7 +104,10 @@ export function AppUpdate() {
     void db.wallets.toArray().then(wallets => setPending(wallets.reduce((total, wallet) => total + wallet.outbox.length, 0)));
   }, [needRefresh]);
 
-  if (!needRefresh) return null;
+  if (!needRefresh) return manualStatus ? <div className="update-banner app-update" role="status">
+    <span><strong>{manualStatus}</strong></span>
+    <button className="icon-button" aria-label="Fechar aviso de atualização" onClick={() => setManualStatus('')}>×</button>
+  </div> : null;
   return <div className="update-banner app-update" role="status">
     <span>
       <strong>{availableVersion ? `BS Wallet v${availableVersion} disponível.` : 'Nova versão do BS Wallet disponível.'}</strong>

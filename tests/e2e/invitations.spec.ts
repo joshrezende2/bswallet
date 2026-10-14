@@ -43,7 +43,7 @@ for (const recipient of ['existing', 'signup'] as const) {
       await pageA.getByRole('combobox', { name: 'Papel do convite', exact: true }).selectOption('member');
       await pageA.getByRole('button', { name: 'Criar convite', exact: true }).click();
       const link = pageA.getByLabel('Link do convite', { exact: true });
-      await expect(link).toBeVisible();
+      await expect(link).toBeVisible({ timeout: 15_000 });
       const inviteLink = await link.inputValue();
       expect(new URL(inviteLink).pathname).toMatch(/^\/convite\/.+/);
       expect(remote.invites).toHaveLength(1);

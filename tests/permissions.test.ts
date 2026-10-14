@@ -3,8 +3,8 @@ import { emptyWallet } from '../src/data/factory';
 import { canRead, requireWrite, validateMemberChange } from '../src/domain/permissions';
 import type { Context, Member, User } from '../src/domain/types';
 
-const master: User = { id: 'master', name: 'Master', email: 'master@example.com', username: 'master', createdAt: '2026-01-01T00:00:00.000Z' };
-const memberUser: User = { id: 'member', name: 'Membro', email: 'member@example.com', username: 'member', createdAt: '2026-01-01T00:00:00.000Z' };
+const master: User = { id: 'master', name: 'Master', email: 'master@example.com', username: 'master', createdAt: '2026-01-01T00:00:00.000Z', type: 'adult' };
+const memberUser: User = { id: 'member', name: 'Membro', email: 'member@example.com', username: 'member', createdAt: '2026-01-01T00:00:00.000Z', type: 'adult' };
 const privateItem = { scope: 'personal' as const, ownerUserId: master.id };
 
 describe('escopos e permissões', () => {

@@ -1,4 +1,4 @@
-import type { Budget, Card, Frequency, Invoice, Recurrence, Transaction, Transfer } from './types';
+import type { Account, Budget, Card, Frequency, Invoice, Recurrence, Transaction, Transfer } from './types';
 
 export const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 export function parseMoney(input: string): number {
@@ -65,13 +65,16 @@ export function cardUsage(card: Card, transactions: Transaction[], invoices: Inv
   const used = transactions.filter(t => t.cardId === card.id && t.status !== 'cancelled' && t.type === 'expense' && (!t.invoiceId || !paid.has(t.invoiceId))).reduce((sum, t) => sum + t.amount, 0);
   return { used, available: card.totalLimit - used, percent: card.totalLimit > 0 ? used * 100 / card.totalLimit : 0 };
 }
-export function accountBalance(accountId: string, transactions: Transaction[], transfers: Transfer[], cards: Card[]) {
+export function accountBalance(accountOrId: Account | string, transactions: Transaction[], transfers: Transfer[], cards: Card[]) {
+  const accountId = typeof accountOrId === 'string' ? accountOrId : accountOrId.id;
+  const initialBalance = typeof accountOrId === 'string' ? 0 : accountOrId.initialBalance;
+  const initialDate = typeof accountOrId === 'string' ? undefined : accountOrId.initialBalanceDate;
   const debitCardIds = new Set(cards.filter(card => card.cardType === 'debit').map(card => card.id));
   const transactionsTotal = transactions
-    .filter(transaction => transaction.accountId === accountId && transaction.status === 'confirmed' && (!transaction.cardId || debitCardIds.has(transaction.cardId)))
+    .filter(transaction => transaction.accountId === accountId && transaction.status === 'confirmed' && (!initialDate || financialDate(transaction) >= initialDate) && (!transaction.cardId || debitCardIds.has(transaction.cardId)))
     .reduce((total, transaction) => total + (transaction.type === 'income' ? transaction.amount : -transaction.amount), 0);
-  const transfersTotal = transfers.reduce((total, transfer) => total + (transfer.toAccountId === accountId ? transfer.amount : 0) - (transfer.fromAccountId === accountId ? transfer.amount : 0), 0);
-  return transactionsTotal + transfersTotal;
+  const transfersTotal = transfers.filter(transfer => !initialDate || transfer.date >= initialDate).reduce((total, transfer) => total + (transfer.toAccountId === accountId ? transfer.amount : 0) - (transfer.fromAccountId === accountId ? transfer.amount : 0), 0);
+  return initialBalance + transactionsTotal + transfersTotal;
 }
 const monthIntervals: Partial<Record<Frequency, number>> = { monthly: 1, bimonthly: 2, quarterly: 3, semiannual: 6, annual: 12 };
 export function occurrenceDate(recurrence: Pick<Recurrence, 'frequency' | 'startDate' | 'customIntervalValue' | 'customIntervalUnit'>, index: number): string {

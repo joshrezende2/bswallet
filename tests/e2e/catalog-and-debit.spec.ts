@@ -18,8 +18,10 @@ test('desktop usa checkboxes, protege duplicidades e registra cartão de débito
     await expect(personDialog.getByRole('group', { name: 'Categorias permitidas' })).toBeVisible();
     await expect(personDialog.locator('select[name="allowedCategoryIds"]')).toHaveCount(0);
     await expect(personDialog.getByRole('checkbox', { name: 'Mercado' })).toBeVisible();
+    expect(await personDialog.locator('input[name="allowedCategoryIds"]:checked').count()).toBeGreaterThan(20);
+    await expect(personDialog.getByLabel('Perfil')).toHaveValue('adult');
     await personDialog.getByLabel('Nome').fill('Pessoa removível');
-    await personDialog.getByRole('checkbox', { name: 'Mercado' }).check();
+    await personDialog.getByLabel('Perfil').selectOption('child');
     if (process.env.CATALOG_SCREENSHOT) await page.screenshot({ path: process.env.CATALOG_SCREENSHOT, fullPage: false });
     await personDialog.getByRole('button', { name: 'Salvar', exact: true }).click();
     await expect(personDialog).toBeHidden();
@@ -29,16 +31,25 @@ test('desktop usa checkboxes, protege duplicidades e registra cartão de débito
     await page.goto('/app/ajustes/categorias');
     await page.getByRole('button', { name: /Adicionar categoria|Começar cadastro/ }).first().click();
     const categoryDialog = page.getByRole('dialog');
+    expect(await categoryDialog.locator('input[name="icon"]').count()).toBeGreaterThan(20);
     await categoryDialog.getByLabel('Nome').fill(' mercado ');
     await categoryDialog.getByRole('button', { name: 'Salvar', exact: true }).click();
     await expect(categoryDialog.getByRole('alert')).toContainText('Já existe uma categoria');
     await categoryDialog.getByRole('button', { name: 'Fechar' }).click();
+    await page.getByRole('button', { name: /Adicionar categoria/ }).first().click();
+    const newCategoryDialog = page.getByRole('dialog');
+    await newCategoryDialog.getByLabel('Nome').fill('Mobilidade elétrica');
+    await newCategoryDialog.getByTitle('Energia').click();
+    await newCategoryDialog.getByRole('button', { name: 'Salvar', exact: true }).click();
+    await expect(newCategoryDialog).toBeHidden();
 
     await page.goto('/app/ajustes/contas');
     await page.getByRole('button', { name: /Adicionar conta|Começar cadastro/ }).first().click();
     const accountDialog = page.getByRole('dialog');
     await accountDialog.getByLabel('Nome').fill('Conta Débito');
     await accountDialog.getByLabel('Instituição').fill('Banco Teste');
+    await accountDialog.getByLabel('Saldo inicial (R$)').fill('1.250,50');
+    await accountDialog.getByLabel('Data do saldo inicial').fill('2026-10-01');
     await accountDialog.getByRole('button', { name: 'Salvar', exact: true }).click();
     await expect(accountDialog).toBeHidden();
 
@@ -70,6 +81,12 @@ test('desktop usa checkboxes, protege duplicidades e registra cartão de débito
     const wallet = wallets[0];
     const debitCard = wallet.cards.find((current: any) => current.name === 'Cartão Débito');
     const purchase = wallet.transactions.find((current: any) => current.name === 'Compra no débito');
+    const savedPerson = wallet.people.find((current: any) => current.name === 'Pessoa removível');
+    const savedCategory = wallet.categories.find((current: any) => current.name === 'Mobilidade elétrica');
+    const savedAccount = wallet.accounts.find((current: any) => current.name === 'Conta Débito');
+    expect(savedPerson.type).toBe('child');
+    expect(savedPerson.allowedCategoryIds).toContain(savedCategory.id);
+    expect(savedAccount).toMatchObject({ initialBalance: 125050, initialBalanceDate: '2026-10-01' });
     expect(debitCard.cardType).toBe('debit');
     expect(purchase).toMatchObject({ cardId: debitCard.id, accountId: debitCard.accountId });
     expect(purchase.invoiceId).toBeUndefined();

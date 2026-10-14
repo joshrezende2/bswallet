@@ -3,7 +3,7 @@ import { snapshotToWalletState, toSyncEnvelope } from '../src/data/xano/mapper';
 import type { Base, EntityMap, LocalChange, Member, Preferences, User, Workspace } from '../src/domain/types';
 import { missingRecordFields, remoteFields, syncRecordFields } from './helpers/xano-contract';
 
-const user: User = { id: '00000000-0000-4000-8000-000000000001', name: 'Teste', email: 'teste@example.com', username: 'teste', createdAt: '2026-01-01T00:00:00.000Z' };
+const user: User = { id: '00000000-0000-4000-8000-000000000001', name: 'Teste', email: 'teste@example.com', username: 'teste', createdAt: '2026-01-01T00:00:00.000Z', type: 'adult' };
 const workspaceId = '00000000-0000-4000-8000-000000000002';
 const base: Base = { id: '00000000-0000-4000-8000-000000000004', workspaceId, ownerUserId: user.id, scope: 'shared', createdAt: user.createdAt, updatedAt: user.createdAt, createdBy: user.id, updatedBy: user.id, version: 1, syncStatus: 'local' };
 const categoryId = '00000000-0000-4000-8000-000000000005';
@@ -15,9 +15,9 @@ const date = '2026-10-05';
 // Typed minimal domain entities: all optional properties are deliberately absent.
 const entities = {
   transactions: { ...base, name: 'Teste Sync', amount: 100, type: 'expense', status: 'confirmed', transactionDate: date, competenceDate: date, categoryId, paymentMode: 'single' },
-  people: { ...base, name: 'Pessoa', monthlySpendingLimitEnabled: false, monthlySpendingLimit: 0, allowedCategoryIds: [], active: true },
+  people: { ...base, name: 'Pessoa', type: 'adult', monthlySpendingLimitEnabled: false, monthlySpendingLimit: 0, allowedCategoryIds: [], active: true },
   categories: { ...base, name: 'Mercado', icon: '', type: 'expense', active: true },
-  accounts: { ...base, name: 'Conta', institution: '', type: 'checking', active: true },
+  accounts: { ...base, name: 'Conta', institution: '', type: 'checking', initialBalance: 0, active: true },
   cards: { ...base, name: 'Cartão', bank: '', brand: '', last4Digits: '1234', cardType: 'credit', totalLimit: 10000, closingDay: 1, dueDay: 10, ownerPersonId: personId, active: true },
   recurrences: { ...base, name: 'Recorrência', amount: 100, type: 'expense', categoryId, frequency: 'monthly', customIntervalValue: 1, customIntervalUnit: 'month', startDate: date, nextOccurrenceDate: date, autoConfirm: false, active: true },
   invoices: { ...base, cardId, cycleMonth: '2026-10', closingDate: date, dueDate: '2026-10-10' },
